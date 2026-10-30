@@ -35,13 +35,27 @@ burgerLinker reads files, not directories, so first merge the elo-dtb Turtle fil
 python3 scripts/merge_ttl.py ../elo-dtb/sample data/elo-dtb-sample.nt
 ```
 
-Then link:
+There are two set-ups, both using burgerLinker's `between_b_m`:
+
+| set-up | links | data model | rules |
+|---|---|---|---|
+| `siblings` | parents of a baptism → parents of another baptism | [models/elo-dtb-siblings.yaml](models/elo-dtb-siblings.yaml) | [rules/siblings.yaml](rules/siblings.yaml) |
+| `marriages` | parents of a baptism → bride and groom of a marriage | [models/elo-dtb-marriages.yaml](models/elo-dtb-marriages.yaml) | burgerLinker's `LINKS.yaml` |
 
 ```bash
-scripts/run.sh data/elo-dtb-sample.nt work/sample
+scripts/run.sh siblings data/elo-dtb-sample.nt work/sample
+scripts/run.sh marriages data/elo-dtb-sample.nt work/marriages
 ```
 
-The links are in `work/sample/between_b-m-maxLev-4/results/BETWEEN_B-M-maxLev-4.csv`. Every baptism also links to itself (`certificate_A` = `certificate_B`); those rows can be ignored. A workdir keeps its RDF store; delete the workdir to load new data.
+The links are in `<workdir>/between_b-m-maxLev-4/results/BETWEEN_B-M-maxLev-4.csv`. In the `siblings` set-up every baptism also links to itself (`certificate_A` = `certificate_B`); those rows can be ignored. A workdir keeps its RDF store; delete the workdir to load new data.
+
+In the `marriages` set-up, baptisms that link to the same marriage are siblings. To group them:
+
+```bash
+python3 scripts/siblings_from_links.py work/marriages/between_b-m-maxLev-4/results/BETWEEN_B-M-maxLev-4.csv work/marriages/siblings.csv
+```
+
+It also lists baptisms that link to more than one marriage.
 
 ## Test
 
@@ -50,11 +64,11 @@ The links are in `work/sample/between_b-m-maxLev-4/results/BETWEEN_B-M-maxLev-4.
 ```bash
 mkdir -p work/fixture && cp ../elo-dtb/sample/a6ef5889-136b-b800-6747-c8eacbd459a1.ttl tests/fixtures/invented-siblings.ttl work/fixture/
 python3 scripts/merge_ttl.py work/fixture data/test-siblings.nt
-scripts/run.sh data/test-siblings.nt work/test
+scripts/run.sh siblings data/test-siblings.nt work/test
 ```
 
 Expected: `test-1` (spelling variants) links to the real record, `test-2` (32 years later) is rejected by the time rule, and `test-3` (other mother) does not link.
 
 ## Status
 
-Tested on the extended elo-dtb sample (395 records, elo-dtb `8166a65`): 227 baptisms are indexed and all 225 links that pass are self-links. The known siblings in the sample (the Kloeck children of 1651 and 1655) are not linked yet; see [docs/analysis-kloeck-siblings.md](docs/analysis-kloeck-siblings.md) for why. Two baptisms are dropped because their date is only a year and month (`xsd:gYearMonth`), which burgerLinker cannot read.
+Tested on the extended elo-dtb sample (395 records, elo-dtb `8166a65`). `siblings`: 227 baptisms are indexed and all 225 links that pass are self-links. `marriages`: 88 of the 90 marriage records have a usable date and 1 baptism links to a marriage (Riebeek, ondertrouw 1787, baptism 1792); no sibling groups yet, see [docs/analysis-marriages.md](docs/analysis-marriages.md). The known siblings in the sample (the Kloeck children of 1651 and 1655) are not linked yet; see [docs/analysis-kloeck-siblings.md](docs/analysis-kloeck-siblings.md) for why. Two baptisms are dropped because their date is only a year and month (`xsd:gYearMonth`), which burgerLinker cannot read.
