@@ -35,19 +35,32 @@ burgerLinker reads files, not directories, so first merge the elo-dtb Turtle fil
 python3 scripts/merge_ttl.py ../elo-dtb/sample data/elo-dtb-sample.nt
 ```
 
-There are two set-ups, both using burgerLinker's `between_b_m`:
+There are four set-ups:
 
-| set-up | links | data model | rules |
-|---|---|---|---|
-| `siblings` | parents of a baptism → parents of another baptism | [models/elo-dtb-siblings.yaml](models/elo-dtb-siblings.yaml) | [rules/siblings.yaml](rules/siblings.yaml) |
-| `marriages` | parents of a baptism → bride and groom of a marriage | [models/elo-dtb-marriages.yaml](models/elo-dtb-marriages.yaml) | burgerLinker's `LINKS.yaml` |
+| set-up | function | links | data model | rules |
+|---|---|---|---|---|
+| `siblings` | `between_b_m` | parents of a baptism → parents of another baptism | [models/elo-dtb-siblings.yaml](models/elo-dtb-siblings.yaml) | [rules/siblings.yaml](rules/siblings.yaml) |
+| `marriages` | `between_b_m` | parents of a baptism → bride and groom of a marriage | [models/elo-dtb-marriages.yaml](models/elo-dtb-marriages.yaml) | burgerLinker's `LINKS.yaml` |
+| `within-bm` | `within_b_m` | baptised child → bride or groom of a marriage; the child gets both genders | [models/elo-dtb-within-bm.yaml](models/elo-dtb-within-bm.yaml) | burgerLinker's `LINKS.yaml` |
+| `within-bm-bloothooft` | `within_b_m` | same, with the child's gender from Bloothooft's given-name list | [models/elo-dtb-within-bm-bloothooft.yaml](models/elo-dtb-within-bm-bloothooft.yaml) | burgerLinker's `LINKS.yaml` |
 
 ```bash
 scripts/run.sh siblings data/elo-dtb-sample.nt work/sample
 scripts/run.sh marriages data/elo-dtb-sample.nt work/marriages
+scripts/run.sh within-bm data/elo-dtb-sample.nt work/within-bm
 ```
 
-The links are in `<workdir>/between_b-m-maxLev-4/results/BETWEEN_B-M-maxLev-4.csv`. In the `siblings` set-up every baptism also links to itself (`certificate_A` = `certificate_B`); those rows can be ignored. A workdir keeps its RDF store; delete the workdir to load new data.
+`within-bm-bloothooft` needs a name → gender lookup in the input. Build it once from elo-dtb's lookup table (takes about half a minute) and add it to the data:
+
+```bash
+python3 scripts/given_name_gender.py ../elo-dtb/lookup-tables/bloothooft-given-names.nt.gz data/given-name-gender.nt
+cat data/elo-dtb-sample.nt data/given-name-gender.nt > data/elo-dtb-sample-with-gender.nt
+scripts/run.sh within-bm-bloothooft data/elo-dtb-sample-with-gender.nt work/within-bm-bloothooft
+```
+
+Extra burgerLinker options go at the end, for example `--ignore-relatives` to compare only the child with the bride or groom, without their parents. The results then go to a directory ending in `-singleInd`.
+
+The links are in `<workdir>/between_b-m-maxLev-4/results/BETWEEN_B-M-maxLev-4.csv` (`within_b-m-…` for the `within-bm` set-ups). In the `siblings` set-up every baptism also links to itself (`certificate_A` = `certificate_B`); those rows can be ignored. A workdir keeps its RDF store; delete the workdir to load new data.
 
 In the `marriages` set-up, baptisms that link to the same marriage are siblings. To group them:
 
@@ -71,4 +84,4 @@ Expected: `test-1` (spelling variants) links to the real record, `test-2` (32 ye
 
 ## Status
 
-Tested on the extended elo-dtb sample (395 records, elo-dtb `8166a65`). `siblings`: 227 baptisms are indexed and all 225 links that pass are self-links. `marriages`: 88 of the 90 marriage records have a usable date and 1 baptism links to a marriage (Riebeek, ondertrouw 1787, baptism 1792); no sibling groups yet, see [docs/analysis-marriages.md](docs/analysis-marriages.md). The known siblings in the sample (the Kloeck children of 1651 and 1655) are not linked yet; see [docs/analysis-kloeck-siblings.md](docs/analysis-kloeck-siblings.md) for why. Two baptisms are dropped because their date is only a year and month (`xsd:gYearMonth`), which burgerLinker cannot read.
+Tested on the extended elo-dtb sample (395 records, elo-dtb `8166a65`). `siblings`: 227 baptisms are indexed and all 225 links that pass are self-links. `marriages`: 88 of the 90 marriage records have a usable date and 1 baptism links to a marriage (Riebeek, ondertrouw 1787, baptism 1792); no sibling groups yet, see [docs/analysis-marriages.md](docs/analysis-marriages.md). `within-bm`: 0 links when a parent must match too, 4 links on names only, of which 3 are wrong and 1 is doubtful; the Bloothooft gender gives the same result, see [docs/analysis-within-bm.md](docs/analysis-within-bm.md). The known siblings in the sample (the Kloeck children of 1651 and 1655) are not linked yet; see [docs/analysis-kloeck-siblings.md](docs/analysis-kloeck-siblings.md) for why. Two baptisms are dropped because their date is only a year and month (`xsd:gYearMonth`), which burgerLinker cannot read.

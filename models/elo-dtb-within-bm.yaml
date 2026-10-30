@@ -1,0 +1,171 @@
+---
+# ********************************************* #
+#                                               #
+#  burgerLinker data model: ELO DTB baptised    #
+#  children as later brides and grooms          #
+#                                               #
+#  Links a baptised child to its own marriage,  #
+#  with burgerLinker's within_b_m: the child    #
+#  is compared with the bride or groom, and     #
+#  the child's parents with the parents of      #
+#  that bride or groom.                         #
+#                                               #
+#  Input: ELO DTB baptisms (dtb_dopen) and      #
+#  marriages (dtb_trouwen) in PiCo, as made by  #
+#  elo-dtb with a2a-to-pico.                    #
+#                                               #
+#  BIRTHS    = baptised child with its parents  #
+#  MARRIAGES = bride and groom with their       #
+#              parents                          #
+#  DEATHS    = not used, returns nothing        #
+#                                               #
+# ********************************************* #
+
+# Notes on the ELO DTB data (see also elo-dtb-marriages.yaml):
+# - The baptised child almost never has a gender (1 of 252 in
+#   the sample), and within_b_m skips children without one.
+#   This model gives every child without a gender both genders:
+#   one row as male and one as female, so the child is compared
+#   with the grooms and with the brides. The gendered given name
+#   does the rest. elo-dtb-within-bm-bloothooft.yaml takes the
+#   gender from Bloothooft's given-name list instead.
+# - The parents of bride and groom are witnesses (role 573)
+#   linked to the bride or groom with sdo:parent. Only some
+#   marriage records have them.
+# - The patronym is used as the family name when there is no
+#   sdo:familyName, for the child too.
+
+# Return all baptised children with their father and mother.
+BIRTHS: >
+  PREFIX picom: <https://personsincontext.org/model#>
+  PREFIX pnv: <https://w3id.org/pnv#>
+  PREFIX prov: <http://www.w3.org/ns/prov#>
+  PREFIX sdo: <https://schema.org/>
+
+  SELECT *
+  WHERE {
+    {
+      SELECT DISTINCT *
+      WHERE {
+        ?event sdo:additionalType <https://terms.personsincontext.org/eventtypes/548> ;
+               sdo:dateCreated ?eventDate .
+        ?newborn prov:hadPrimarySource ?event ;
+                 picom:hasRole <https://terms.personsincontext.org/roles/575> .
+      }
+    }
+    OPTIONAL { ?newborn sdo:gender ?recordedGender }
+    VALUES ?anyGender { sdo:Male sdo:Female }
+    FILTER(!BOUND(?recordedGender) || ?recordedGender = ?anyGender)
+    BIND(?anyGender AS ?newbornGender)
+    OPTIONAL { ?newborn picom:hasAge ?newbornAge }
+    OPTIONAL { ?newborn sdo:givenName ?newbornGivenName .
+               OPTIONAL { ?newborn sdo:familyName ?childFamilyName }
+               OPTIONAL { ?newborn sdo:additionalName/pnv:patronym ?childPatronym }
+               BIND(COALESCE(?childFamilyName, ?childPatronym) AS ?newbornFamilyName)
+    }
+    OPTIONAL { ?newborn sdo:parent ?newbornFather .
+               ?newbornFather sdo:gender sdo:Male ;
+                              sdo:givenName ?newbornFatherGivenName .
+               OPTIONAL { ?newbornFather sdo:familyName ?fatherFamilyName }
+               OPTIONAL { ?newbornFather sdo:additionalName/pnv:patronym ?fatherPatronym }
+               OPTIONAL { ?newbornFather picom:hasAge ?newbornFatherAge }
+               BIND(COALESCE(?fatherFamilyName, ?fatherPatronym) AS ?newbornFatherFamilyName)
+               BIND(sdo:Male AS ?newbornFatherGender)
+    }
+    OPTIONAL { ?newborn sdo:parent ?newbornMother .
+               ?newbornMother sdo:gender sdo:Female ;
+                              sdo:givenName ?newbornMotherGivenName .
+               OPTIONAL { ?newbornMother sdo:familyName ?motherFamilyName }
+               OPTIONAL { ?newbornMother sdo:additionalName/pnv:patronym ?motherPatronym }
+               OPTIONAL { ?newbornMother picom:hasAge ?newbornMotherAge }
+               BIND(COALESCE(?motherFamilyName, ?motherPatronym) AS ?newbornMotherFamilyName)
+               BIND(sdo:Female AS ?newbornMotherGender)
+    }
+  }
+
+# Not used. burgerLinker requires the entry, so this query
+# returns no rows.
+DEATHS: >
+  PREFIX sdo: <https://schema.org/>
+
+  SELECT *
+  WHERE {
+    ?event sdo:dateCreated ?eventDate .
+    ?deceased ?p ?event .
+    FILTER(false)
+  }
+
+# Return the bride and groom of every marriage record, with
+# their parents when recorded.
+MARRIAGES: >
+  PREFIX picom: <https://personsincontext.org/model#>
+  PREFIX pnv: <https://w3id.org/pnv#>
+  PREFIX prov: <http://www.w3.org/ns/prov#>
+  PREFIX sdo: <https://schema.org/>
+
+  SELECT *
+  WHERE {
+    {
+      SELECT DISTINCT *
+      WHERE {
+        ?event sdo:additionalType <https://terms.personsincontext.org/sourcetypes/549> ;
+               sdo:dateCreated ?eventDate .
+        FILTER(REGEX(STR(?eventDate), "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"))
+
+        ?bride prov:hadPrimarySource ?event ;
+               picom:hasRole <https://terms.personsincontext.org/roles/574> ;
+               sdo:gender sdo:Female ;
+               sdo:givenName ?brideGivenName ;
+               sdo:spouse ?groom .
+        ?groom prov:hadPrimarySource ?event ;
+               picom:hasRole <https://terms.personsincontext.org/roles/574> ;
+               sdo:gender sdo:Male ;
+               sdo:givenName ?groomGivenName .
+
+        OPTIONAL { ?bride sdo:familyName ?brideSurname }
+        OPTIONAL { ?bride sdo:additionalName/pnv:patronym ?bridePatronym }
+        OPTIONAL { ?groom sdo:familyName ?groomSurname }
+        OPTIONAL { ?groom sdo:additionalName/pnv:patronym ?groomPatronym }
+        BIND(COALESCE(?brideSurname, ?bridePatronym) AS ?brideFamilyName)
+        BIND(COALESCE(?groomSurname, ?groomPatronym) AS ?groomFamilyName)
+        BIND(sdo:Female AS ?brideGender)
+        BIND(sdo:Male AS ?groomGender)
+      }
+    }
+    OPTIONAL { ?bride picom:hasAge ?brideAge }
+    OPTIONAL { ?groom picom:hasAge ?groomAge }
+    OPTIONAL { ?bride sdo:parent ?brideFather .
+               ?brideFather sdo:gender sdo:Male ;
+                            sdo:givenName ?brideFatherGivenName .
+               OPTIONAL { ?brideFather sdo:familyName ?brideFatherSurname }
+               OPTIONAL { ?brideFather sdo:additionalName/pnv:patronym ?brideFatherPatronym }
+               BIND(COALESCE(?brideFatherSurname, ?brideFatherPatronym) AS ?brideFatherFamilyName)
+               BIND(sdo:Male AS ?brideFatherGender)
+    }
+    OPTIONAL { ?bride sdo:parent ?brideMother .
+               ?brideMother sdo:gender sdo:Female ;
+                            sdo:givenName ?brideMotherGivenName .
+               OPTIONAL { ?brideMother sdo:familyName ?brideMotherSurname }
+               OPTIONAL { ?brideMother sdo:additionalName/pnv:patronym ?brideMotherPatronym }
+               BIND(COALESCE(?brideMotherSurname, ?brideMotherPatronym) AS ?brideMotherFamilyName)
+               BIND(sdo:Female AS ?brideMotherGender)
+    }
+    OPTIONAL { ?groom sdo:parent ?groomFather .
+               ?groomFather sdo:gender sdo:Male ;
+                            sdo:givenName ?groomFatherGivenName .
+               OPTIONAL { ?groomFather sdo:familyName ?groomFatherSurname }
+               OPTIONAL { ?groomFather sdo:additionalName/pnv:patronym ?groomFatherPatronym }
+               BIND(COALESCE(?groomFatherSurname, ?groomFatherPatronym) AS ?groomFatherFamilyName)
+               BIND(sdo:Male AS ?groomFatherGender)
+    }
+    OPTIONAL { ?groom sdo:parent ?groomMother .
+               ?groomMother sdo:gender sdo:Female ;
+                            sdo:givenName ?groomMotherGivenName .
+               OPTIONAL { ?groomMother sdo:familyName ?groomMotherSurname }
+               OPTIONAL { ?groomMother sdo:additionalName/pnv:patronym ?groomMotherPatronym }
+               BIND(COALESCE(?groomMotherSurname, ?groomMotherPatronym) AS ?groomMotherFamilyName)
+               BIND(sdo:Female AS ?groomMotherGender)
+    }
+  }
+
+...  # EOF
