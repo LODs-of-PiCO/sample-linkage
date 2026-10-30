@@ -35,7 +35,7 @@ burgerLinker reads files, not directories, so first merge the elo-dtb Turtle fil
 python3 scripts/merge_ttl.py ../elo-dtb/sample data/elo-dtb-sample.nt
 ```
 
-There are four set-ups:
+For the elo-dtb sample there are four set-ups:
 
 | set-up | function | links | data model | rules |
 |---|---|---|---|---|
@@ -70,6 +70,36 @@ python3 scripts/siblings_from_links.py work/marriages/between_b-m-maxLev-4/resul
 
 It also lists baptisms that link to more than one marriage.
 
+## Full ELO baptism set
+
+The siblings of all ELO baptisms before 1811 come from a full PiCo dump of Erfgoed Leiden en Omstreken (`data/elo-pico.nt.gz`, not in git). Make the baptism set (about 8 minutes), add the standardised given names (Bloothooft) and run four set-ups: family name or patronym as surname, each with the given names as written and standardised:
+
+```bash
+scripts/extract_child_records.sh data/elo-pico.nt.gz data/elo-child-records.nt
+scripts/select_baptisms.sh data/elo-child-records.nt data/elo-baptisms-before-1811.nt
+python3 scripts/standardise_given_names.py ../elo-dtb/lookup-tables/bloothooft-given-names.nt.gz data/elo-baptisms-before-1811.nt data/elo-baptisms-before-1811-std.nt
+scripts/run.sh siblings-familyname data/elo-baptisms-before-1811-std.nt work/familyname
+scripts/run.sh siblings-familyname-std data/elo-baptisms-before-1811-std.nt work/familyname-std
+scripts/run.sh siblings-patronym data/elo-baptisms-before-1811-std.nt work/patronym
+scripts/run.sh siblings-patronym-std data/elo-baptisms-before-1811-std.nt work/patronym-std
+```
+
+| set-up | surname | given names | data model |
+|---|---|---|---|
+| `siblings-familyname` | `sdo:familyName` | as written | [models/elo-baptisms-familyname.yaml](models/elo-baptisms-familyname.yaml) |
+| `siblings-familyname-std` | `sdo:familyName` | standardised | [models/elo-baptisms-familyname-std.yaml](models/elo-baptisms-familyname-std.yaml) |
+| `siblings-patronym` | `pnv:patronym` | as written | [models/elo-baptisms-patronym.yaml](models/elo-baptisms-patronym.yaml) |
+| `siblings-patronym-std` | `pnv:patronym` | standardised | [models/elo-baptisms-patronym-std.yaml](models/elo-baptisms-patronym-std.yaml) |
+
+The sibling pairs and groups are the union of the four runs:
+
+```bash
+R=between_b-m-maxLev-4/results/BETWEEN_B-M-maxLev-4.csv
+python3 scripts/sibling_groups.py work/siblings familyname=work/familyname/$R familyname-std=work/familyname-std/$R patronym=work/patronym/$R patronym-std=work/patronym-std/$R
+```
+
+This writes `work/siblings-pairs.csv` (with the runs that found each pair) and `work/siblings-groups.csv`. How the baptisms are selected, how the names are matched and what the test on 1700–1704 showed is in [docs/analysis-full-baptisms.md](docs/analysis-full-baptisms.md).
+
 ## Test
 
 [tests/fixtures/invented-siblings.ttl](tests/fixtures/invented-siblings.ttl) has three **invented** baptisms for the parents of one real record. Run it together with that record:
@@ -85,3 +115,5 @@ Expected: `test-1` (spelling variants) links to the real record, `test-2` (32 ye
 ## Status
 
 Tested on the extended elo-dtb sample (395 records, elo-dtb `8166a65`). `siblings`: 227 baptisms are indexed and all 225 links that pass are self-links. `marriages`: 88 of the 90 marriage records have a usable date and 1 baptism links to a marriage (Riebeek, ondertrouw 1787, baptism 1792); no sibling groups yet, see [docs/analysis-marriages.md](docs/analysis-marriages.md). `within-bm`: 0 links when a parent must match too, 4 links on names only, of which 3 are wrong and 1 is doubtful; the Bloothooft gender gives the same result, see [docs/analysis-within-bm.md](docs/analysis-within-bm.md). The known siblings in the sample (the Kloeck children of 1651 and 1655) are not linked yet; see [docs/analysis-kloeck-siblings.md](docs/analysis-kloeck-siblings.md) for why. Two baptisms are dropped because their date is only a year and month (`xsd:gYearMonth`), which burgerLinker cannot read.
+
+Full ELO set: 395,690 baptisms before 1811. On the baptisms of 1700–1704 (12,913) the union of the four runs gives 3,483 sibling pairs in 1,991 groups; standardising the given names adds about a fifth more pairs. Common patronyms ("Pieter Jansz & Marij Jans") join different couples into one group, so the groups need checks before use. The full runs are still to be done; see [docs/analysis-full-baptisms.md](docs/analysis-full-baptisms.md).

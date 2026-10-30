@@ -9,6 +9,11 @@
 #                         child gets both genders
 #   within-bm-bloothooft  same, child's gender from Bloothooft's given-name list
 #                         (the input must include data/given-name-gender.nt)
+#   siblings-familyname   full ELO baptisms: parents -> parents, surname = family name
+#   siblings-patronym     full ELO baptisms: parents -> parents, surname = patronym
+#   siblings-familyname-std, siblings-patronym-std
+#                         same, with standardised given names (the input must be
+#                         made with scripts/standardise_given_names.py)
 #
 # A new workdir gets a fresh RDF store built from the input. To rebuild
 # the store of an existing workdir, delete the workdir first.
@@ -20,7 +25,7 @@ BL="$ROOT/bin/burgerlinker-v0.8.2"
 JAR="$BL/burgerLinker.jar"
 
 if [ $# -lt 3 ]; then
-    echo "usage: $0 <siblings|marriages|within-bm|within-bm-bloothooft> <input .nt/.ttl> <workdir> [extra burgerLinker options]" >&2
+    echo "usage: $0 <set-up> <input .nt/.ttl> <workdir> [extra burgerLinker options]" >&2
     exit 1
 fi
 SETUP="$1"
@@ -49,8 +54,28 @@ case "$SETUP" in
         RULESET="$BL/res/rule_sets/LINKS.yaml"
         FUNCTION=within_b_m
         ;;
+    siblings-familyname)
+        MODEL="$ROOT/models/elo-baptisms-familyname.yaml"
+        RULESET="$ROOT/rules/siblings.yaml"
+        FUNCTION=between_b_m
+        ;;
+    siblings-patronym)
+        MODEL="$ROOT/models/elo-baptisms-patronym.yaml"
+        RULESET="$ROOT/rules/siblings.yaml"
+        FUNCTION=between_b_m
+        ;;
+    siblings-familyname-std)
+        MODEL="$ROOT/models/elo-baptisms-familyname-std.yaml"
+        RULESET="$ROOT/rules/siblings.yaml"
+        FUNCTION=between_b_m
+        ;;
+    siblings-patronym-std)
+        MODEL="$ROOT/models/elo-baptisms-patronym-std.yaml"
+        RULESET="$ROOT/rules/siblings.yaml"
+        FUNCTION=between_b_m
+        ;;
     *)
-        echo "unknown set-up '$SETUP': use siblings, marriages, within-bm or within-bm-bloothooft" >&2
+        echo "unknown set-up '$SETUP': use siblings, marriages, within-bm, within-bm-bloothooft, siblings-familyname, siblings-patronym or their -std variants" >&2
         exit 1
         ;;
 esac
