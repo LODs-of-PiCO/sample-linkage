@@ -1,0 +1,78 @@
+# INVENTED test records, not real archival data.
+#
+# Three made-up baptisms for the parents of the real ELO baptism
+# a6ef5889-136b-b800-6747-c8eacbd459a1 (Jan, baptised 1701-03-13, son of
+# Gerrit Nieuwdorp and Anna Maria Marcus). Used to check that the sibling
+# set-up links them, or rejects them, as expected:
+#
+#   test-1  1704, spelling variants of both parents   -> should link
+#   test-2  1733, same parents, 32 years later        -> should be rejected (> 25 years)
+#   test-3  1706, same father, different mother       -> should not link
+
+@prefix picom: <https://personsincontext.org/model#> .
+@prefix pnv: <https://w3id.org/pnv#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix sdo: <https://schema.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# --- test-1: spelling variants, patronym-only mother
+<https://ex.org/Source:test-1> a sdo:ArchiveComponent ;
+    sdo:additionalType <https://terms.personsincontext.org/eventtypes/548> ;
+    sdo:dateCreated "1704-05-02"^^xsd:date .
+<https://ex.org/Person:test-1-child> a picom:PersonObservation ;
+    prov:hadPrimarySource <https://ex.org/Source:test-1> ;
+    picom:hasRole <https://terms.personsincontext.org/roles/575> ;
+    sdo:givenName "Marritje"@nl ;
+    sdo:parent <https://ex.org/Person:test-1-father>, <https://ex.org/Person:test-1-mother> .
+<https://ex.org/Person:test-1-father> a picom:PersonObservation ;
+    prov:hadPrimarySource <https://ex.org/Source:test-1> ;
+    sdo:gender sdo:Male ;
+    sdo:givenName "Gerrit"@nl ;
+    sdo:familyName "Nieudorp"@nl ;
+    sdo:spouse <https://ex.org/Person:test-1-mother> .
+<https://ex.org/Person:test-1-mother> a picom:PersonObservation ;
+    prov:hadPrimarySource <https://ex.org/Source:test-1> ;
+    sdo:gender sdo:Female ;
+    sdo:givenName "Anna"@nl ;
+    sdo:additionalName [ a pnv:PersonName ; pnv:givenName "Anna"@nl ; pnv:patronym "Markus"@nl ] ;
+    sdo:spouse <https://ex.org/Person:test-1-father> .
+
+# --- test-2: same parents, too far apart in time
+<https://ex.org/Source:test-2> a sdo:ArchiveComponent ;
+    sdo:additionalType <https://terms.personsincontext.org/eventtypes/548> ;
+    sdo:dateCreated "1733-06-01"^^xsd:date .
+<https://ex.org/Person:test-2-child> a picom:PersonObservation ;
+    prov:hadPrimarySource <https://ex.org/Source:test-2> ;
+    picom:hasRole <https://terms.personsincontext.org/roles/575> ;
+    sdo:givenName "Pieter"@nl ;
+    sdo:parent <https://ex.org/Person:test-2-father>, <https://ex.org/Person:test-2-mother> .
+<https://ex.org/Person:test-2-father> a picom:PersonObservation ;
+    prov:hadPrimarySource <https://ex.org/Source:test-2> ;
+    sdo:gender sdo:Male ;
+    sdo:givenName "Gerrit"@nl ;
+    sdo:familyName "Nieuwdorp"@nl .
+<https://ex.org/Person:test-2-mother> a picom:PersonObservation ;
+    prov:hadPrimarySource <https://ex.org/Source:test-2> ;
+    sdo:gender sdo:Female ;
+    sdo:givenName "Anna Maria"@nl ;
+    sdo:familyName "Marcus"@nl .
+
+# --- test-3: same father, different mother
+<https://ex.org/Source:test-3> a sdo:ArchiveComponent ;
+    sdo:additionalType <https://terms.personsincontext.org/eventtypes/548> ;
+    sdo:dateCreated "1706-01-10"^^xsd:date .
+<https://ex.org/Person:test-3-child> a picom:PersonObservation ;
+    prov:hadPrimarySource <https://ex.org/Source:test-3> ;
+    picom:hasRole <https://terms.personsincontext.org/roles/575> ;
+    sdo:givenName "Klaas"@nl ;
+    sdo:parent <https://ex.org/Person:test-3-father>, <https://ex.org/Person:test-3-mother> .
+<https://ex.org/Person:test-3-father> a picom:PersonObservation ;
+    prov:hadPrimarySource <https://ex.org/Source:test-3> ;
+    sdo:gender sdo:Male ;
+    sdo:givenName "Gerrit"@nl ;
+    sdo:familyName "Nieuwdorp"@nl .
+<https://ex.org/Person:test-3-mother> a picom:PersonObservation ;
+    prov:hadPrimarySource <https://ex.org/Source:test-3> ;
+    sdo:gender sdo:Female ;
+    sdo:givenName "Grietje"@nl ;
+    sdo:familyName "Verhoeven"@nl .

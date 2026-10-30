@@ -1,0 +1,6 @@
+# burgerLinker release v0.8.2, downloaded from github.com/CLARIAH/burgerLinker/releases
+bin/
+
+# input data made from elo-dtb, and burgerLinker workdirs
+data/
+work/
