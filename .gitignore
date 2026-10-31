@@ -4,3 +4,7 @@ bin/
 # input data made from elo-dtb, and burgerLinker workdirs
 data/
 work/
+
+# intermediate files of the visualisation builders, Python caches
+viz/build/work/
+__pycache__/

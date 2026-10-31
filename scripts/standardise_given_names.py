@@ -21,9 +21,10 @@ How a given name is standardised:
      list, or have no standard, are kept, in lower case.
   4. The parts are joined again with a space, in the original order.
 
-usage: standardise_given_names.py <bloothooft-given-names.nt.gz> <in.nt> <out.nt>
+usage: standardise_given_names.py <bloothooft-given-names.nt.gz> <in.nt> <out.nt> [property IRI]
 
-out.nt is in.nt plus the extra triples."""
+out.nt is in.nt plus the extra triples. The optional property IRI replaces
+the default property, for example https://schema.org/givenNameBloot."""
 
 import gzip
 import re
@@ -80,7 +81,8 @@ def standardise(given, standards, stats):
     return " ".join(out) if out else None
 
 
-def main(bloothooft, in_nt, out_nt):
+def main(bloothooft, in_nt, out_nt, prop=None):
+    standard_prop = f"<{prop}>" if prop else STANDARD
     standards = load_standards(bloothooft)
     print(f"{len(standards)} names with a standard form in the list")
     stats = Counter()
@@ -96,12 +98,12 @@ def main(bloothooft, in_nt, out_nt):
             stats["given names"] += 1
             if std:
                 std = std.replace("\\", "\\\\").replace('"', '\\"')
-                fout.write(f'{s} {STANDARD} "{std}"@nl .\n')
+                fout.write(f'{s} {standard_prop} "{std}"@nl .\n')
     for k, v in stats.items():
         print(f"{k}: {v}")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 4:
-        sys.exit("usage: standardise_given_names.py <bloothooft-given-names.nt.gz> <in.nt> <out.nt>")
+    if len(sys.argv) not in (4, 5):
+        sys.exit("usage: standardise_given_names.py <bloothooft-given-names.nt.gz> <in.nt> <out.nt> [property IRI]")
     main(*sys.argv[1:])

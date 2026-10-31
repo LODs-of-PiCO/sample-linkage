@@ -1,0 +1,451 @@
+<meta charset="utf-8">
+<title>Leiden Historical Family Browser</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&family=Alegreya+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: controls, then the same family drawn four times (one network per run, same node positions), the pair under the loupe, the register entries. */
+:root {
+  --bg: #f3f5f7;
+  --surface: #ffffff;
+  --ink: #18212b;
+  --muted: #5d6874;
+  --faint: #8a949e;
+  --line: #d9dfe5;
+  --accent: #23508f;
+  --accent-soft: #e2eaf5;
+  --flag: #a3392f;
+  --flag-soft: #f6e4e1;
+  --edge: #7d8996;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #c98a00; --s5: #d4537e; --s6: #3e8a1e; --s7: #6250d6; --s8: #8a6a4a;
+  --display: "Alegreya", Georgia, serif;
+  --body: "Alegreya Sans", "Gill Sans", "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11161c; --surface: #19212a; --ink: #e6ebf0; --muted: #a3afbb; --faint: #75818d; --line: #2c3743;
+  --accent: #7fa8e6; --accent-soft: #1f3150; --flag: #e3877c; --flag-soft: #3a2220; --edge: #8995a2;
+  --s1: #4f95e8; --s2: #e57a4a; --s3: #2bbf88; --s4: #e0a72a; --s5: #e07aa0; --s6: #63b043; --s7: #9085e9; --s8: #b8916c;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #11161c; --surface: #19212a; --ink: #e6ebf0; --muted: #a3afbb; --faint: #75818d; --line: #2c3743;
+  --accent: #7fa8e6; --accent-soft: #1f3150; --flag: #e3877c; --flag-soft: #3a2220; --edge: #8995a2;
+  --s1: #4f95e8; --s2: #e57a4a; --s3: #2bbf88; --s4: #e0a72a; --s5: #e07aa0; --s6: #63b043; --s7: #9085e9; --s8: #b8916c;
+  color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 16px/1.5 var(--body); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 24px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 18px; }
+h1 { font: 700 30px/1.15 var(--display); margin: 0; text-wrap: balance; }
+h2 { font: 700 21px/1.2 var(--display); margin: 0; text-wrap: balance; }
+h3 { font: 700 17px/1.2 var(--display); margin: 0; }
+.sub { color: var(--muted); margin: 4px 0 0; max-width: 78ch; }
+.mono, .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; min-width: 0; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+.grp { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.label { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); font-weight: 500; }
+button, select, input[type=search] { font: 500 14px var(--body); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 7px; padding: 6px 11px; }
+button { cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, select:focus-visible, input:focus-visible, canvas:focus-visible, .row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+button.chip[aria-pressed="true"] { background: var(--flag-soft); border-color: var(--flag); color: var(--flag); }
+button.toggle[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+input[type=search] { width: 200px; max-width: 100%; }
+kbd { font: 12px var(--mono); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; color: var(--muted); }
+.ghead { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; align-items: baseline; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 14px; }
+.pill { display: inline-block; font-size: 12px; font-weight: 500; padding: 1px 8px; border-radius: 999px; background: var(--flag-soft); color: var(--flag); white-space: nowrap; }
+.pill.ok { background: var(--accent-soft); color: var(--accent); }
+.pill.off { background: transparent; color: var(--faint); border: 1px solid var(--line); }
+.runs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr)); gap: 14px; margin-top: 14px; }
+.run { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px 8px; min-width: 0; position: relative; }
+.run .what { font-size: 13px; color: var(--muted); margin: 2px 0 0; }
+.run .what b { color: var(--ink); font-weight: 500; }
+.run .stat { font-size: 13px; color: var(--muted); }
+.run canvas { display: block; width: 100%; height: 300px; margin-top: 6px; cursor: crosshair; }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 13px; line-height: 1.4; padding: 7px 10px; border-radius: 7px; max-width: 280px; z-index: 5; }
+.tip b { font-weight: 700; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); margin-top: 10px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+.legend .ln { display: inline-block; width: 18px; height: 0; border-top: 2px solid var(--flag); margin-right: 5px; vertical-align: 3px; }
+.legend .ln.dash { border-top-style: dashed; }
+.legend .ring { background: transparent; border: 1.5px solid var(--faint); }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 12px; }
+.rec { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; min-width: 0; }
+.rec dl { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 3px 10px; margin: 6px 0 0; }
+.rec dt { color: var(--faint); font-size: 13px; }
+.rec dd { margin: 0; overflow-wrap: anywhere; }
+.rec .tag { font: 700 13px var(--mono); color: var(--accent); }
+.diff { background: var(--flag-soft); color: var(--flag); border-radius: 3px; padding: 0 1px; }
+.score { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 12px; font-size: 14px; color: var(--muted); align-items: center; }
+.score b { color: var(--ink); font-family: var(--mono); font-weight: 500; }
+.tablewrap { overflow-x: auto; margin-top: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th { text-align: left; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 5px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+tr.row.hl td { background: var(--accent-soft); }
+td.z { color: var(--faint); }
+a { color: var(--accent); }
+.empty { color: var(--muted); padding: 18px 0; }
+.keys { color: var(--faint); font-size: 13px; }
+@media (max-width: 560px) { h1 { font-size: 25px; } .run canvas { height: 240px; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Leiden Historical Family Browser</h1>
+    <p class="sub" id="intro">Baptisms before 1811 from Erfgoed Leiden en Omstreken, linked into families by burgerLinker in four runs. Loading the sample…</p>
+  </header>
+
+  <section class="panel controls" aria-label="Choose a family">
+    <div class="grp">
+      <button class="primary" id="shuffle" title="Shortcut: S">Shuffle family</button>
+      <button id="prev" aria-label="Previous family" title="Shortcut: ←">←</button>
+      <button id="next" aria-label="Next family" title="Shortcut: →">→</button>
+    </div>
+    <div class="grp">
+      <label class="label" for="size">Size</label>
+      <select id="size">
+        <option value="all">all</option>
+        <option value="2-3">2–3 baptisms</option>
+        <option value="4-6">4–6</option>
+        <option value="7-9">7–9</option>
+        <option value="10-14">10–14</option>
+        <option value="15-29">15–29</option>
+        <option value="30-9999">30 or more</option>
+      </select>
+    </div>
+    <div class="grp" role="group" aria-label="Only families with">
+      <span class="label">Only with</span>
+      <button class="chip" data-flag="both" aria-pressed="false">family-name and patronym links</button>
+      <button class="chip" data-flag="check" aria-pressed="false">pairs dropped by the check</button>
+      <button class="chip" data-flag="dup" aria-pressed="false">double registration</button>
+      <button class="chip" data-flag="twin" aria-pressed="false">same-day births</button>
+      <button class="chip" data-flag="gap" aria-pressed="false">gap under 9 months</button>
+      <button class="chip" data-flag="span" aria-pressed="false">span over 25 years</button>
+    </div>
+    <div class="grp">
+      <label class="label" for="q">Name</label>
+      <input type="search" id="q" placeholder="e.g. van Delft">
+      <button class="toggle" id="colour" aria-pressed="true">Colour by father's surname</button>
+      <span class="keys" id="count"></span>
+    </div>
+  </section>
+
+  <section class="panel" id="family" aria-live="polite">
+    <div id="fhead"><p class="empty">Loading…</p></div>
+    <div class="runs" id="runs"></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <section class="panel" id="pairpanel">
+    <div class="ghead">
+      <h2>Sibling pair</h2>
+      <button id="shufflepair" title="Shortcut: P">Shuffle pair in this family</button>
+    </div>
+    <div id="pair"><p class="empty">Click a line in any of the four networks, or shuffle, to compare two baptisms.</p></div>
+  </section>
+
+  <section class="panel">
+    <h2>Register entries</h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th>#</th><th>Date</th><th>Child</th><th>Father</th><th>Patronym</th><th>Mother</th><th>Patronym</th><th title="links in the family-name run">FN</th><th title="links in the family-name run, standardised">FN std</th><th title="links in the patronym run">PN</th><th title="links in the patronym run, standardised">PN std</th><th>Record</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+  </section>
+
+  <p class="keys">Keys: <kbd>S</kbd> shuffle family · <kbd>←</kbd> <kbd>→</kbd> previous / next · <kbd>P</kbd> shuffle pair. Bookmark a family with its number, for example <span class="mono">#g12</span>.</p>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const RUNS = [
+  { key: "familyname", title: "Family name", given: "given name as written", sur: "family name as written" },
+  { key: "familyname-std", title: "Family name, standardised", given: "Bloothooft given name", sur: "family name as written" },
+  { key: "patronym", title: "Patronym", given: "given name as written", sur: "patronym as written" },
+  { key: "patronym-std", title: "Patronym, standardised", given: "Bloothooft given name", sur: "patronym as written" },
+];
+const CHECK = 16;
+const PREFIX = /^(van|der|den|de|la|le|ten|ter|te|in|op|'t|von|du|del|di|des)$/i;
+const flagText = { both: "family-name and patronym links", check: "pairs dropped by the check", dup: "double registration", twin: "same-day births", gap: "gap under 9 months", span: "span over 25 years" };
+let recs, groups, list = [], pos = 0, cur = null, colourOn = true, hoverRec = null, hoverEdge = null, selEdge = null;
+const flagsOn = new Set();
+
+const fmt = n => n.toLocaleString("en-GB");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const yr = d => { const [y, m, dd] = d.split("-").map(Number); return y + (m - 1) / 12 + (dd - 1) / 365; };
+function lev(a, b) { let p = [...Array(b.length + 1).keys()]; for (let i = 1; i <= a.length; i++) { const c = [i]; for (let j = 1; j <= b.length; j++) c.push(Math.min(p[j] + 1, c[j - 1] + 1, p[j - 1] + (a[i - 1] !== b[j - 1]))); p = c; } return p[b.length]; }
+const surname = full => full.split(/\s+/).slice(1).filter(w => !PREFIX.test(w)).join(" ").toLowerCase();
+const daysBetween = (a, b) => Math.round(Math.abs((Date.parse(a) - Date.parse(b)) / 864e5));
+const yearsApart = (a, b) => { const d = daysBetween(a, b); return d === 0 ? "same day" : d < 365 ? `${d} days` : `${(d / 365.25).toFixed(1)} years`; };
+const patCell = p => p ? `<td>${esc(p)}</td>` : `<td class="z">none</td>`;
+const withPat = (name, p) => p ? `${esc(name)} <span style="opacity:.75">(patronym ${esc(p)})</span>` : `${esc(name)} <span style="opacity:.75">(no patronym)</span>`;
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const seriesVar = i => i < 8 ? `--s${i + 1}` : "--faint";
+
+function surnameClusters(g) {
+  const reps = [], counts = [], of = {};
+  g.ids.forEach(r => {
+    const s = surname(recs[r][2]);
+    if (!s) { of[r] = -1; return; }
+    let k = reps.findIndex(x => x[0] === s[0] && lev(x, s) <= Math.max(1, Math.floor(Math.min(x.length, s.length) / 4)));
+    if (k < 0) { k = reps.length; reps.push(s); counts.push(0); }
+    counts[k]++; of[r] = k;
+  });
+  const order = counts.map((c, i) => i).sort((a, b) => counts[b] - counts[a]);
+  const rank = {}; order.forEach((k, i) => rank[k] = i);
+  return { of: r => of[r] < 0 ? -1 : rank[of[r]], n: reps.length, label: order.map(k => recs[g.ids.find(r => of[r] === k)][2]), counts: order.map(k => counts[k]) };
+}
+
+function layout(g) {
+  if (g.pos) return g.pos;
+  const n = g.ids.length, at = {}; g.ids.forEach((r, i) => at[r] = i);
+  const t = g.ids.map(r => yr(recs[r][0])), t0 = Math.min(...t), t1 = Math.max(...t), span = Math.max(1, t1 - t0);
+  const tx = t.map(v => (v - t0) / span);
+  let seed = g.no * 9301 + 49297; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  const x = tx.map(v => v + (rnd() - .5) * .05), y = tx.map(() => rnd());
+  const E = g.edges.map(e => [at[e[0]], at[e[1]]]);
+  const L = Math.min(.3, 1.1 / Math.sqrt(n)), iters = n > 200 ? 160 : 260;
+  for (let it = 0; it < iters; it++) {
+    const cool = 1 - it / iters, fx = new Float64Array(n), fy = new Float64Array(n);
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+      let dx = x[i] - x[j], dy = y[i] - y[j], d2 = dx * dx + dy * dy + 1e-4;
+      const f = L * L / d2 * .02; fx[i] += dx * f; fy[i] += dy * f; fx[j] -= dx * f; fy[j] -= dy * f;
+    }
+    for (const [a, b] of E) {
+      const dx = x[b] - x[a], dy = y[b] - y[a], d = Math.sqrt(dx * dx + dy * dy) + 1e-6, f = (d - L) / d * .06;
+      fx[a] += dx * f; fy[a] += dy * f; fx[b] -= dx * f; fy[b] -= dy * f;
+    }
+    for (let i = 0; i < n; i++) {
+      fx[i] += (tx[i] - x[i]) * .08; fy[i] += (.5 - y[i]) * .01;
+      const m = Math.hypot(fx[i], fy[i]), cap = .05 * cool + .002;
+      const s = m > cap ? cap / m : 1; x[i] += fx[i] * s; y[i] += fy[i] * s;
+    }
+  }
+  const nx0 = Math.min(...x), nx1 = Math.max(...x), ny0 = Math.min(...y), ny1 = Math.max(...y);
+  g.pos = g.ids.map((r, i) => [n === 1 ? .5 : (x[i] - nx0) / Math.max(1e-6, nx1 - nx0), n === 1 ? .5 : (y[i] - ny0) / Math.max(1e-6, ny1 - ny0)]);
+  g.t = [t0, t1];
+  return g.pos;
+}
+
+function buildList() {
+  const [lo, hi] = $("#size").value === "all" ? [0, 1e9] : $("#size").value.split("-").map(Number);
+  const q = $("#q").value.trim().toLowerCase();
+  list = groups.filter(g => g.ids.length >= lo && g.ids.length <= hi
+    && [...flagsOn].every(f => g.flags.includes(f))
+    && (!q || g.ids.some(r => [recs[r][1], recs[r][2], recs[r][3], recs[r][5], recs[r][6]].join(" ").toLowerCase().includes(q))));
+  $("#count").textContent = `${fmt(list.length)} families match`;
+}
+function pick(i) {
+  if (!list.length) { cur = null; renderEmpty(); return; }
+  pos = (i + list.length) % list.length; cur = list[pos]; hoverRec = hoverEdge = selEdge = null;
+  try { history.replaceState(null, "", "#g" + cur.no); } catch (e) {}
+  render();
+}
+const shuffle = () => pick(Math.floor(Math.random() * list.length));
+function renderEmpty() {
+  $("#fhead").innerHTML = `<p class="empty">No family in the sample matches these filters. Clear a filter or the name search.</p>`;
+  $("#runs").innerHTML = $("#legend").innerHTML = $("#rows").innerHTML = $("#pair").innerHTML = "";
+}
+
+let panels = [];
+function render() {
+  const g = cur, ids = g.ids, n = ids.length;
+  g.cl = surnameClusters(g);
+  layout(g);
+  const main = (() => { const c = {}; ids.forEach(r => { const k = recs[r][2] + " & " + recs[r][3]; c[k] = (c[k] || 0) + 1; }); return Object.entries(c).sort((a, b) => b[1] - a[1])[0][0]; })();
+  const pills = g.flags.map(f => `<span class="pill">${flagText[f]}</span>`).join(" ") || `<span class="pill ok">no warnings</span>`;
+  $("#fhead").innerHTML = `
+    <div class="ghead"><h2>${esc(main)}</h2><span class="mono" style="color:var(--faint)">family ${g.no}</span></div>
+    <div class="meta" style="margin-top:6px">
+      <span><b class="num">${n}</b> baptisms</span>
+      <span class="num">${recs[ids[0]][0]} – ${recs[ids[n - 1]][0]}</span>
+      <span><b class="num">${fmt(g.edges.length)}</b> pairs in all runs together</span>
+      <span>${pills}</span>
+    </div>`;
+  $("#runs").innerHTML = RUNS.map((R, k) => {
+    const m = g.edges.filter(e => e[2] & (1 << k));
+    const reached = new Set(); m.forEach(e => { reached.add(e[0]); reached.add(e[1]); });
+    const dropped = k >= 2 ? m.filter(e => e[2] & CHECK).length : 0;
+    return `<div class="run">
+      <div class="ghead"><h3>${R.title}</h3><span class="stat"><b class="num">${fmt(m.length)}</b> pairs · <b class="num">${reached.size}</b> of ${n} baptisms${dropped ? ` · <span style="color:var(--flag)">${dropped} dropped by the check</span>` : ""}</span></div>
+      <p class="what">compares <b>${R.given}</b> + <b>${R.sur}</b> of both parents, with Levenshtein</p>
+      <canvas data-k="${k}" tabindex="0" role="img" aria-label="${R.title} run: ${m.length} pairs between ${reached.size} of ${n} baptisms"></canvas>
+      <div class="tip" hidden></div></div>`;
+  }).join("");
+  panels = [...document.querySelectorAll(".run")].map(el => ({ el, cv: el.querySelector("canvas"), tip: el.querySelector(".tip"), k: +el.querySelector("canvas").dataset.k }));
+  panels.forEach(p => wireCanvas(p));
+  drawAll();
+  const lg = $("#legend"), cl = g.cl;
+  lg.innerHTML = (colourOn && cl.n ? cl.label.slice(0, 8).map((f, i) => `<span><i style="background:var(${seriesVar(i)})"></i>${esc(f)} <span class="num">(${cl.counts[i]})</span></span>`).join("")
+      + (cl.n > 8 ? `<span><i style="background:var(--faint)"></i>${cl.n - 8} more surnames</span>` : "")
+      + (ids.some(r => cl.of(r) < 0) ? `<span><i style="background:var(--muted)"></i>father without family name</span>` : "")
+      + `<span><span class="ln"></span>link between different family names</span>` : "")
+    + `<span><span class="ln dash"></span>dropped by the family-name check</span><span><i class="ring"></i>not linked in this run</span><span>left = earlier, right = later</span>`;
+  const cnt = ids.map(r => RUNS.map((R, k) => g.edges.filter(e => (e[2] & (1 << k)) && (e[0] === r || e[1] === r)).length));
+  $("#rows").innerHTML = ids.map((r, i) => {
+    const [d, c, f, m, id, fp, mp] = recs[r];
+    const ci = cl.of(r);
+    const dot = colourOn ? `<i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(${ci < 0 ? "--muted" : seriesVar(ci)});margin-right:6px"></i>` : "";
+    return `<tr class="row" data-r="${r}" tabindex="0"><td class="num">${i + 1}</td><td class="num">${d}</td><td>${esc(c)}</td><td>${dot}${esc(f)}</td>${patCell(fp)}<td>${esc(m)}</td>${patCell(mp)}${cnt[i].map(v => `<td class="num${v ? "" : " z"}">${v}</td>`).join("")}<td><a href="https://www.openarchieven.nl/id/record_elo_${id}" target="_blank" rel="noopener">open</a></td></tr>`;
+  }).join("");
+  document.querySelectorAll("#rows tr").forEach(tr => {
+    const r = +tr.dataset.r;
+    const on = () => { hoverRec = r; hoverEdge = null; drawAll(); }, off = () => { hoverRec = null; drawAll(); };
+    tr.addEventListener("mouseenter", on); tr.addEventListener("mouseleave", off);
+    tr.addEventListener("focus", on); tr.addEventListener("blur", off);
+  });
+  if (g.edges.length) showPair(g.edges[Math.floor(Math.random() * g.edges.length)]); else $("#pair").innerHTML = "";
+}
+
+function geom(p) {
+  const r = p.cv.getBoundingClientRect(), pad = 16;
+  return { w: r.width, h: r.height, X: v => pad + v * (r.width - 2 * pad), Y: v => pad + v * (r.height - 2 * pad) };
+}
+function drawAll() { panels.forEach(draw); highlightRows(); }
+function draw(p) {
+  const g = cur, cv = p.cv, dpr = window.devicePixelRatio || 1, G = geom(p);
+  if (cv.width !== Math.round(G.w * dpr) || cv.height !== Math.round(G.h * dpr)) { cv.width = Math.round(G.w * dpr); cv.height = Math.round(G.h * dpr); }
+  const c = cv.getContext("2d"); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, G.w, G.h);
+  const bit = 1 << p.k, at = {}; g.ids.forEach((r, i) => at[r] = i);
+  const P = g.pos, cl = g.cl, col = { edge: css("--edge"), flag: css("--flag"), faint: css("--faint"), surface: css("--surface"), accent: css("--accent"), muted: css("--muted"), ink: css("--ink") };
+  const mine = g.edges.filter(e => e[2] & bit);
+  const reached = new Set(); mine.forEach(e => { reached.add(e[0]); reached.add(e[1]); });
+  const focus = hoverEdge;
+  const baseA = mine.length > 400 ? .12 : mine.length > 120 ? .25 : .5;
+  c.lineWidth = 1;
+  for (const e of mine) {
+    const a = P[at[e[0]]], b = P[at[e[1]]];
+    const cross = colourOn && cl.of(e[0]) >= 0 && cl.of(e[1]) >= 0 && cl.of(e[0]) !== cl.of(e[1]);
+    const dropped = p.k >= 2 && (e[2] & CHECK);
+    let alpha = baseA;
+    if (hoverRec !== null) alpha = (e[0] === hoverRec || e[1] === hoverRec) ? .95 : .04;
+    if (focus) alpha = (e === focus) ? 1 : .04;
+    const sel = e === selEdge && !focus && hoverRec === null;
+    c.globalAlpha = sel ? 1 : alpha;
+    c.strokeStyle = sel ? col.accent : cross || dropped ? col.flag : col.edge;
+    c.lineWidth = e === focus || sel ? 2.5 : 1;
+    c.setLineDash(dropped ? [4, 3] : []);
+    c.beginPath(); c.moveTo(G.X(a[0]), G.Y(a[1])); c.lineTo(G.X(b[0]), G.Y(b[1])); c.stroke();
+  }
+  c.setLineDash([]); c.globalAlpha = 1;
+  const rad = g.ids.length > 150 ? 3 : g.ids.length > 40 ? 4 : 6;
+  g.ids.forEach((r, i) => {
+    const x = G.X(P[i][0]), y = G.Y(P[i][1]), ci = cl.of(r);
+    const fill = !colourOn ? col.accent : ci < 0 ? col.muted : css(seriesVar(ci));
+    let dim = hoverRec !== null && hoverRec !== r && !g.edges.some(e => (e[2] & bit) && ((e[0] === hoverRec && e[1] === r) || (e[1] === hoverRec && e[0] === r)));
+    if (focus) dim = r !== focus[0] && r !== focus[1];
+    c.globalAlpha = dim ? .25 : 1;
+    c.beginPath(); c.arc(x, y, r === hoverRec ? rad + 2.5 : rad, 0, Math.PI * 2);
+    if (reached.has(r)) { c.fillStyle = fill; c.fill(); c.lineWidth = 1.5; c.strokeStyle = col.surface; c.stroke(); }
+    else { c.lineWidth = 1.5; c.strokeStyle = col.faint; c.stroke(); }
+    if (r === hoverRec) { c.lineWidth = 2; c.strokeStyle = col.ink; c.beginPath(); c.arc(x, y, rad + 5, 0, Math.PI * 2); c.stroke(); }
+  });
+  c.globalAlpha = 1;
+  c.fillStyle = col.faint; c.font = `12px ${css("--mono") || "monospace"}`;
+  c.textBaseline = "alphabetic"; c.textAlign = "left"; c.fillText(String(Math.floor(g.t[0])), 4, G.h - 3);
+  c.textAlign = "right"; c.fillText(String(Math.floor(g.t[1])), G.w - 4, G.h - 3);
+}
+
+function hitTest(p, mx, my) {
+  const g = cur, G = geom(p), P = g.pos, bit = 1 << p.k, at = {}; g.ids.forEach((r, i) => at[r] = i);
+  let best = null, bd = 9;
+  g.ids.forEach((r, i) => { const d = Math.hypot(G.X(P[i][0]) - mx, G.Y(P[i][1]) - my); if (d < bd) { bd = d; best = { rec: r }; } });
+  if (best) return best;
+  bd = 4;
+  for (const e of g.edges) {
+    if (!(e[2] & bit)) continue;
+    const a = P[at[e[0]]], b = P[at[e[1]]], ax = G.X(a[0]), ay = G.Y(a[1]), bx = G.X(b[0]), by = G.Y(b[1]);
+    const L2 = (bx - ax) ** 2 + (by - ay) ** 2 || 1, t = Math.max(0, Math.min(1, ((mx - ax) * (bx - ax) + (my - ay) * (by - ay)) / L2));
+    const d = Math.hypot(ax + t * (bx - ax) - mx, ay + t * (by - ay) - my);
+    if (d < bd) { bd = d; best = { edge: e }; }
+  }
+  return best;
+}
+function wireCanvas(p) {
+  const place = (mx, my) => { const w = p.el.clientWidth; let lx = mx + p.cv.offsetLeft + 14, ly = my + p.cv.offsetTop + 14; if (lx > w - 290) lx = Math.max(0, mx + p.cv.offsetLeft - 290); p.tip.style.left = lx + "px"; p.tip.style.top = ly + "px"; };
+  p.cv.addEventListener("mousemove", ev => {
+    const b = p.cv.getBoundingClientRect(), mx = ev.clientX - b.left, my = ev.clientY - b.top, h = hitTest(p, mx, my);
+    if (h && h.rec !== undefined) {
+      const [d, ch, f, m, , fp, mp] = recs[h.rec];
+      const k = cur.edges.filter(e => (e[2] & (1 << p.k)) && (e[0] === h.rec || e[1] === h.rec)).length;
+      p.tip.innerHTML = `<b>${esc(ch)}</b> · ${d}<br>father ${withPat(f, fp)}<br>mother ${withPat(m, mp)}<br>${k} link${k === 1 ? "" : "s"} in this run`;
+      p.tip.hidden = false; place(mx, my); p.cv.style.cursor = "pointer";
+      if (hoverRec !== h.rec || hoverEdge) { hoverRec = h.rec; hoverEdge = null; drawAll(); }
+    } else if (h && h.edge) {
+      const e = h.edge, A = recs[e[0]], B = recs[e[1]];
+      p.tip.innerHTML = `<b>${esc(A[1])}</b> ${A[0]} ↔ <b>${esc(B[1])}</b> ${B[0]}<br>${yearsApart(A[0], B[0])} apart · found by ${RUNS.filter((R, k) => e[2] & (1 << k)).length} of 4 runs${p.k >= 2 && (e[2] & CHECK) ? "<br>dropped by the family-name check" : ""}<br>click to compare`;
+      p.tip.hidden = false; place(mx, my); p.cv.style.cursor = "pointer";
+      if (hoverEdge !== e) { hoverEdge = e; hoverRec = null; drawAll(); }
+    } else {
+      p.tip.hidden = true; p.cv.style.cursor = "crosshair";
+      if (hoverRec !== null || hoverEdge) { hoverRec = null; hoverEdge = null; drawAll(); }
+    }
+  });
+  p.cv.addEventListener("mouseleave", () => { p.tip.hidden = true; hoverRec = null; hoverEdge = null; drawAll(); });
+  p.cv.addEventListener("click", ev => {
+    const b = p.cv.getBoundingClientRect(), h = hitTest(p, ev.clientX - b.left, ev.clientY - b.top);
+    if (h && h.edge) showPair(h.edge);
+    else if (h && h.rec !== undefined) { const es = cur.edges.filter(e => (e[2] & (1 << p.k)) && (e[0] === h.rec || e[1] === h.rec)); if (es.length) showPair(es[Math.floor(Math.random() * es.length)]); }
+  });
+}
+function highlightRows() {
+  const f = hoverEdge;
+  document.querySelectorAll("#rows tr").forEach(tr => { const r = +tr.dataset.r; tr.classList.toggle("hl", r === hoverRec || (!!f && hoverRec === null && (r === f[0] || r === f[1]))); });
+}
+
+const patDiff = (a, b) => !a ? `<span style="color:var(--faint)">none</span>` : a === b ? esc(a) : `<span class="diff">${esc(a)}</span>`;
+function markDiff(a, b) { const wb = b.split(/\s+/); return a.split(/\s+/).map(w => wb.includes(w) ? esc(w) : `<span class="diff">${esc(w)}</span>`).join(" "); }
+function showPair(e) {
+  selEdge = e;
+  const A = recs[e[0]], B = recs[e[1]];
+  const card = (X, Y, tag) => `<div class="rec"><span class="tag">${tag}</span> <span class="num" style="color:var(--muted)">${X[0]}</span>
+    <dl><dt>child</dt><dd>${esc(X[1])}</dd><dt>father</dt><dd>${markDiff(X[2], Y[2])}</dd><dt>patronym</dt><dd>${patDiff(X[5], Y[5])}</dd>
+    <dt>mother</dt><dd>${markDiff(X[3], Y[3])}</dd><dt>patronym</dt><dd>${patDiff(X[6], Y[6])}</dd>
+    <dt>record</dt><dd><a href="https://www.openarchieven.nl/id/record_elo_${X[4]}" target="_blank" rel="noopener" class="mono" style="font-size:13px">${X[4].slice(0, 8)}…</a></dd></dl></div>`;
+  const d = daysBetween(A[0], B[0]);
+  const warn = d === 0 ? (lev(A[1].toLowerCase(), B[1].toLowerCase()) <= 2 ? "same day and same child's name: probably one baptism registered twice" : "same day, different child: twins?") : d <= 270 ? "less than 9 months apart: not possible for one mother" : "";
+  $("#pair").innerHTML = `<div class="pair">${card(A, B, "A")}${card(B, A, "B")}</div>
+    <div class="score"><span>apart <b>${yearsApart(A[0], B[0])}</b></span><span>found by</span>
+      ${RUNS.map((R, k) => `<span class="pill ${e[2] & (1 << k) ? "ok" : "off"}">${R.title}</span>`).join("")}
+      ${e[2] & CHECK ? `<span class="pill">dropped by the family-name check</span>` : ""}
+      ${warn ? `<span class="pill">${warn}</span>` : ""}</div>
+    <p class="keys" style="margin:8px 0 0">Words that differ between A and B are marked. The family-name runs compared given name + family name of both parents; the patronym runs compared given name + patronym. A parent without a patronym cannot link in the patronym runs.</p>`;
+  drawAll();
+}
+
+$("#shuffle").onclick = shuffle;
+$("#prev").onclick = () => pick(pos - 1);
+$("#next").onclick = () => pick(pos + 1);
+$("#size").onchange = () => { buildList(); shuffle(); };
+$("#q").addEventListener("input", () => { buildList(); pick(0); });
+document.querySelectorAll(".chip").forEach(b => b.onclick = () => {
+  const f = b.dataset.flag, on = !flagsOn.has(f); on ? flagsOn.add(f) : flagsOn.delete(f);
+  b.setAttribute("aria-pressed", on); buildList(); shuffle();
+});
+$("#colour").onclick = () => { colourOn = !colourOn; $("#colour").setAttribute("aria-pressed", colourOn); if (cur) { const s = selEdge; render(); if (s) showPair(s); } };
+$("#shufflepair").onclick = () => { if (cur && cur.edges.length) showPair(cur.edges[Math.floor(Math.random() * cur.edges.length)]); };
+document.addEventListener("keydown", ev => {
+  if (ev.target.matches("input, select") || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+  if (ev.key === "s" || ev.key === "S") shuffle();
+  else if (ev.key === "ArrowRight") pick(pos + 1);
+  else if (ev.key === "ArrowLeft") pick(pos - 1);
+  else if (ev.key === "p" || ev.key === "P") $("#shufflepair").click();
+});
+let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => cur && drawAll(), 120); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => cur && drawAll());
+new MutationObserver(() => cur && drawAll()).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+fetch("browser4.json").then(r => r.json()).then(data => {
+  recs = data.recs;
+  groups = data.groups.map(([no, ids, edges, flags]) => ({ no, ids, edges, flags }));
+  const big = groups.filter(g => g.ids.length >= 10).length;
+  $("#intro").textContent = `Baptisms before 1811 from Erfgoed Leiden en Omstreken, linked into families by burgerLinker in four runs. A family is every baptism connected by a pair from any run. Each family is drawn four times with the same positions, once per run, so you can see which run found which links. This sample holds ${fmt(groups.length)} of the ${fmt(data.total_groups)} families: all ${fmt(big)} with 10 or more baptisms and ${fmt(groups.length - big)} smaller ones drawn at random.`;
+  buildList();
+  const m = /^#g(\d+)$/.exec(location.hash);
+  let start = m ? list.findIndex(g => g.no === +m[1]) : -1;
+  if (start < 0) start = list.findIndex(g => g.flags.includes("both") && g.ids.length >= 8 && g.ids.length <= 14);
+  pick(Math.max(0, start));
+}).catch(() => { $("#fhead").innerHTML = `<p class="empty">The family data did not load. Reload the page to try again.</p>`; });
+</script>

@@ -4,6 +4,8 @@
 # usage: scripts/run.sh <set-up> <input .nt/.ttl> <workdir> [extra burgerLinker options]
 #
 #   siblings              parents of a baptism -> parents of another baptism (between_b_m)
+#   siblings-bloot        same, with the parents' given names from sdo:givenNameBloot
+#                         (the input must be made with scripts/standardise_given_names.py)
 #   marriages             parents of a baptism -> bride and groom of a marriage (between_b_m)
 #   within-bm             baptised child -> bride or groom of a marriage (within_b_m),
 #                         child gets both genders
@@ -14,6 +16,11 @@
 #   siblings-familyname-std, siblings-patronym-std
 #                         same, with standardised given names (the input must be
 #                         made with scripts/standardise_given_names.py)
+#   marriages-familyname-std, marriages-patronym-std
+#                         full ELO baptisms -> ELO DTB marriages: parents -> bride and
+#                         groom, standardised given names, surname = family name or
+#                         patronym (input: select_baptisms.sh plus select_marriages.sh
+#                         output, both through standardise_given_names.py)
 #
 # A new workdir gets a fresh RDF store built from the input. To rebuild
 # the store of an existing workdir, delete the workdir first.
@@ -36,6 +43,11 @@ shift 3
 case "$SETUP" in
     siblings)
         MODEL="$ROOT/models/elo-dtb-siblings.yaml"
+        RULESET="$ROOT/rules/siblings.yaml"
+        FUNCTION=between_b_m
+        ;;
+    siblings-bloot)
+        MODEL="$ROOT/models/elo-dtb-siblings-bloot.yaml"
         RULESET="$ROOT/rules/siblings.yaml"
         FUNCTION=between_b_m
         ;;
@@ -74,8 +86,18 @@ case "$SETUP" in
         RULESET="$ROOT/rules/siblings.yaml"
         FUNCTION=between_b_m
         ;;
+    marriages-familyname-std)
+        MODEL="$ROOT/models/elo-baptisms-marriages-familyname-std.yaml"
+        RULESET="$BL/res/rule_sets/LINKS.yaml"
+        FUNCTION=between_b_m
+        ;;
+    marriages-patronym-std)
+        MODEL="$ROOT/models/elo-baptisms-marriages-patronym-std.yaml"
+        RULESET="$BL/res/rule_sets/LINKS.yaml"
+        FUNCTION=between_b_m
+        ;;
     *)
-        echo "unknown set-up '$SETUP': use siblings, marriages, within-bm, within-bm-bloothooft, siblings-familyname, siblings-patronym or their -std variants" >&2
+        echo "unknown set-up '$SETUP': use siblings, siblings-bloot, marriages, within-bm, within-bm-bloothooft, siblings-familyname, siblings-patronym or their -std variants, marriages-familyname-std, marriages-patronym-std" >&2
         exit 1
         ;;
 esac

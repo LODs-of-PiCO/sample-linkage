@@ -1,0 +1,858 @@
+<meta charset="utf-8">
+<title>Threads of Leiden</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,500;1,300&family=Archivo:wght@400;500;600&family=IBM+Plex+Mono:wght@400&display=swap">
+<style>
+/* Layout: a night-sky register. Headline and live counters, one wide canvas where every baptism is a point of light and every sibling link a thread, controls and a legend underneath. Deliberately dark in both themes. */
+:root {
+  --night: #020a1f;
+  --night-2: #04163d;
+  --glow: #0b3a8c;
+  --ink: #e6f4ff;
+  --muted: #8fb3d9;
+  --faint: #4f6f99;
+  --line: #12306a;
+  --amber: #7fe8ff;
+  --teal: #6e5aff;
+  --rose: #ff8aa8;
+  --sea: #55f2c8;
+  --cyan: #7fe8ff;
+  --display: "Spectral", Georgia, serif;
+  --ui: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--night); color: var(--ink); margin: 0; }
+body { background: radial-gradient(120% 80% at 50% 35%, #06225a 0%, var(--night) 70%) var(--night); min-height: 100%; }
+body { font: 16px/1.55 var(--ui); }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 28px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 18px; }
+.brand { float: right; height: 120px; width: auto; margin: -6px 0 8px 24px; }
+@media (max-width: 560px) { .brand { height: 72px; margin-left: 12px; } }
+.eyebrow { font: 500 12px var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin: 0; }
+h1 { font: 300 clamp(30px, 5vw, 54px)/1.05 var(--display); margin: 6px 0 0; letter-spacing: -.01em; text-wrap: balance; }
+h1 em { font-style: italic; color: var(--amber); text-shadow: 0 0 18px rgba(127,232,255,.55); }
+.lede { color: var(--muted); max-width: 66ch; margin: 10px 0 0; }
+.counters { display: flex; flex-wrap: wrap; gap: 14px 40px; align-items: flex-end; }
+.counter .n { font: 300 clamp(28px, 4vw, 44px)/1 var(--display); font-variant-numeric: tabular-nums lining-nums; }
+.counter .l { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.counter.year .n { color: var(--amber); text-shadow: 0 0 16px rgba(127,232,255,.45); }
+.stage { position: relative; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: radial-gradient(70% 90% at 55% 50%, var(--glow) 0%, var(--night-2) 55%, var(--night) 100%); }
+.stage::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(85% 100% at 50% 50%, transparent 60%, rgba(2,10,31,.75) 100%); }
+.stage canvas { display: block; width: 100%; height: clamp(360px, 62vh, 680px); }
+.stage canvas + canvas { position: absolute; inset: 0; }
+.axis { display: flex; justify-content: space-between; font: 12px var(--mono); color: var(--faint); padding: 0 6px; }
+.tip { position: absolute; z-index: 2; pointer-events: none; background: rgba(2,10,31,.92); border: 1px solid var(--line); color: var(--ink); font-size: 13px; line-height: 1.45; padding: 8px 11px; border-radius: 8px; max-width: 300px; }
+.tip b { font-weight: 600; }
+.tip .k { color: var(--muted); }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 14px; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+button { font: 500 14px var(--ui); color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 7px 16px; cursor: pointer; }
+button:hover { border-color: var(--muted); }
+button.play { background: var(--amber); border-color: var(--amber); color: var(--night); }
+a.btnlink { font: 500 14px var(--ui); color: var(--night); background: var(--sea); border: 1px solid var(--sea); border-radius: 999px; padding: 7px 16px; text-decoration: none; }
+a.btnlink:hover { filter: brightness(1.1); }
+a.btnlink:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.zlink { color: var(--sea); }
+button[aria-pressed="false"] { color: var(--faint); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+input[type=range] { flex: 1 1 220px; accent-color: var(--amber); min-width: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; vertical-align: middle; margin-right: 7px; }
+.dot { width: 6px; height: 6px; border-radius: 50%; }
+.thread { width: 22px; height: 2px; border-radius: 2px; }
+.notes { color: var(--faint); font-size: 13px; max-width: 80ch; margin: 0; }
+@media (max-width: 560px) { .counters { gap: 12px 24px; } }
+#zview .wrap { max-width: 1180px; margin: 0 auto; padding-block: 28px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 22px; }
+#zview .eyebrow { font: 500 12px var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin: 0; }
+#zview h1 { font: 300 clamp(32px, 5.4vw, 58px)/1.04 var(--display); margin: 6px 0 0; text-wrap: balance; }
+#zview h1 em { font-style: italic; color: var(--sea); text-shadow: 0 0 18px rgba(85,242,200,.45); }
+#zview h2 { font: 300 clamp(22px, 3vw, 30px)/1.15 var(--display); margin: 0; text-wrap: balance; }
+#zview .lede { color: var(--muted); max-width: 68ch; margin: 10px 0 0; }
+#zview .funnel { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+#zview .step { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: rgba(4,22,61,.55); min-width: 0; }
+#zview .step .n { font: 300 clamp(30px, 4vw, 42px)/1 var(--display); font-variant-numeric: tabular-nums lining-nums; }
+#zview .step .l { color: var(--muted); font-size: 14px; margin-top: 6px; }
+#zview .step.hi .n { color: var(--sea); text-shadow: 0 0 14px rgba(85,242,200,.4); }
+#zview .stagebox { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+#zview .stage { position: relative; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: radial-gradient(70% 90% at 45% 60%, var(--glow) 0%, var(--night-2) 55%, var(--night) 100%); }
+#zview .stage canvas { display: block; width: 100%; height: clamp(380px, 58vh, 620px); cursor: crosshair; }
+#zview .hud { position: absolute; top: 12px; right: 14px; text-align: right; pointer-events: none; }
+#zview .hud .y { font: 300 40px/1 var(--display); color: var(--sea); text-shadow: 0 0 14px rgba(85,242,200,.45); font-variant-numeric: tabular-nums; }
+#zview .hud .s { font-size: 13px; color: var(--muted); margin-top: 4px; }
+#zview .tip { position: absolute; pointer-events: none; background: rgba(2,10,31,.92); border: 1px solid var(--line); font-size: 13px; line-height: 1.45; padding: 8px 11px; border-radius: 8px; max-width: 280px; }
+#zview .tip .k { color: var(--muted); }
+#zview .strip canvas { display: block; width: 100%; height: 96px; }
+#zview .controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+#zview button { font: 500 14px var(--ui); color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 7px 16px; cursor: pointer; }
+#zview button:hover { border-color: var(--muted); }
+#zview button.play { background: var(--sea); border-color: var(--sea); color: var(--night); }
+#zview button:focus-visible,#zview input:focus-visible { outline: 2px solid var(--sea); outline-offset: 2px; }
+#zview input[type=range] { flex: 1 1 220px; accent-color: var(--sea); min-width: 0; }
+#zview .legend { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 13px; color: var(--muted); }
+#zview .legend i { display: inline-block; vertical-align: middle; margin-right: 7px; }
+#zview .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 12px; }
+#zview .card { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: rgba(4,22,61,.55); min-width: 0; }
+#zview .card .date { font: 12px var(--mono); color: var(--rose); }
+#zview .card .who { margin: 6px 0 0; font-size: 15px; }
+#zview .card .who b { font-weight: 600; }
+#zview .card .from { color: var(--sea); }
+#zview .card .other { color: var(--muted); font-size: 14px; }
+#zview .card canvas { display: block; width: 100%; height: 46px; margin-top: 10px; }
+#zview .card .kids { color: var(--muted); font-size: 13px; margin-top: 4px; overflow-wrap: anywhere; }
+#zview .filterline { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; color: var(--muted); font-size: 14px; }
+#zview .notes { color: var(--faint); font-size: 13px; max-width: 82ch; margin: 0; }
+</style>
+
+<div id="tview">
+<div class="wrap">
+  <header>
+    <img class="brand" src="lods-of-pico-animated.svg" alt="LODs of PiCo">
+    <p class="eyebrow">Leiden and surroundings · church baptisms 1600–1810</p>
+    <h1>Every point is a baptism. Every <em>thread</em> joins two siblings.</h1>
+  </header>
+
+  <div class="counters" aria-live="polite">
+    <div class="counter year"><div class="n" id="cYear">1600–1810</div><div class="l">years shown</div></div>
+    <div class="counter"><div class="n" id="cBapt">–</div><div class="l">baptisms</div></div>
+    <div class="counter"><div class="n" id="cPairs">–</div><div class="l">sibling links</div></div>
+    <div class="counter"><div class="n" id="cFam">–</div><div class="l">families of two or more children</div></div>
+  </div>
+
+  <div>
+    <div class="stage" id="stage">
+      <canvas id="sky" role="img" aria-label="All baptisms in the Leiden region from 1600 to 1810 as points by date, with arcs between baptisms linked as siblings"></canvas>
+      <canvas id="lens" aria-hidden="true"></canvas>
+      <canvas id="hl" aria-hidden="true"></canvas>
+      <div class="loading" id="loading">Loading 395,690 baptisms…</div>
+      <div class="tip" id="tip" hidden></div>
+    </div>
+    <div class="axis" aria-hidden="true"><span>1600</span><span>1650</span><span>1700</span><span>1750</span><span>1810</span></div>
+  </div>
+
+  <div class="controls">
+    <button class="play" id="play">Replay 1600 → 1810</button>
+    <input type="range" id="year" min="1600" max="1810" step="1" value="1810" aria-label="Show baptisms up to this year">
+    <button id="tFN" aria-pressed="true">Family-name links</button>
+    <button id="tPN" aria-pressed="true">Patronym-only links</button>
+    <button id="tBolt" aria-pressed="true">Lightning</button>
+    <a id="tZee" class="btnlink" href="#zeeland">Trots op Zeeland →</a>
+  </div>
+
+  <p class="notes zlink" id="zNote" hidden>Trots op Zeeland: the lightning now only strikes the 100 families whose parents married with a bride or groom born in Zeeland.</p>
+
+  <div class="legend">
+    <span><i class="dot" style="background:var(--ink);box-shadow:0 0 6px var(--amber)"></i>baptism in a family</span>
+    <span><i class="dot" style="background:var(--faint)"></i>baptism without a linked sibling</span>
+    <span><i class="thread" style="background:var(--amber)"></i>sibling link found on family name</span>
+    <span><i class="thread" style="background:var(--teal)"></i>sibling link found on patronym only</span>
+    <span><i class="dot" style="background:var(--rose);border-radius:1px;transform:rotate(45deg)"></i>marriage of the parents (in the family panel)</span>
+  </div>
+
+  <p class="lede" style="margin:0">Two centuries of baptism registers from the Leiden region, linked into families by matching the names of the parents. Families light up one by one; hover over the sky to strike one yourself.</p>
+
+  <p class="notes" id="notes">Left to right is time; height has no meaning. Each family gets a random height, so its children sit on one line and the threads arch between them; the longer the gap between two children, the higher the arch. The lightning only draws attention: its shape and height mean nothing. When a family lights up, its panel shows the children on their own timeline and, where we found it, the marriage of the parents (linked by matching the parents to bride and groom in the marriage registers). Links were made with burgerLinker in four runs (family name or patronym, given names as written or standardised), and a patronym-only link is dropped when the two families have different family names.</p>
+</div>
+
+</div>
+<section id="zview" hidden>
+<div class="wrap">
+  <header>
+    <img class="brand" src="lods-of-pico-animated.svg" alt="LODs of PiCo">
+    <p style="margin:0 0 14px"><a href="#threads" class="zback" style="color:var(--cyan);text-decoration:none;font-size:14px">← Threads of Leiden</a></p>
+    <p class="eyebrow">Brides and grooms born in Zeeland · Leiden marriage registers 1575–1810</p>
+    <h1>From <em>Zeeland</em> to Leiden</h1>
+  </header>
+
+  <div class="funnel" id="z-funnel" aria-label="From birthplace to reconstructed family"></div>
+
+  <div class="stagebox">
+    <div class="stage" id="z-stage">
+      <canvas id="z-map" role="img" aria-label="Map with Zeeland birthplaces as glowing points and threads to Leiden; sparks fly to Leiden as marriages take place over time"></canvas>
+      <div class="hud"><div class="y" id="z-hYear">1810</div><div class="s" id="z-hStat"></div></div>
+      <div class="tip" id="z-tip" hidden></div>
+    </div>
+    <div class="strip"><canvas id="z-strip" role="img" aria-label="Marriages of Zeeland-born brides and grooms per decade"></canvas></div>
+    <div class="controls">
+      <button class="play" id="z-play">Replay 1575 → 1810</button>
+      <input type="range" id="z-year" min="1575" max="1810" step="1" value="1810" aria-label="Show marriages up to this year">
+    </div>
+    <div class="legend">
+      <span><i style="width:9px;height:9px;border-radius:50%;background:var(--sea);box-shadow:0 0 6px var(--sea)"></i>birthplace in Zeeland (size: number of people)</span>
+      <span><i style="width:20px;height:2px;background:var(--sea)"></i>marriage in Leiden</span>
+      <span><i style="width:9px;height:9px;border-radius:50%;background:var(--cyan);box-shadow:0 0 6px var(--cyan)"></i>children we linked to the marriage</span>
+      <span><i style="width:12px;height:8px;background:var(--rose)"></i>brides · <i style="width:12px;height:8px;background:var(--sea);margin-left:4px"></i>grooms (decade strip)</span>
+    </div>
+  </div>
+
+  <section>
+    <h2>Families with a Zeeland-born parent</h2>
+    <div class="filterline" style="margin-top:8px"><span id="z-fText"></span><button id="z-fClear" hidden>Show all places</button></div>
+    <div class="cards" id="z-cards" style="margin-top:12px"></div>
+    <div style="margin-top:12px"><button id="z-more" hidden>Show more families</button></div>
+  </section>
+
+  <p class="lede" style="margin:0">Between 1575 and 1810, more than a thousand people born in Zeeland married in Leiden. We followed their marriages to the baptisms of their children, and from there to the families we reconstructed.</p>
+
+  <p class="notes">Birthplaces come from the Leiden marriage registers (DTB Leiden), matched to IISG toponyms; a bride or groom counts when the toponym lies in the province of Zeeland. Children were linked with burgerLinker by matching the parents of a baptism to bride and groom, with standardised given names and family name or patronym. Places sit at approximate coordinates; no coastline is drawn. Many marriages have no linked children: some are older than the baptism registers, and some couples will have baptised their children elsewhere.</p>
+</div>
+
+</section>
+<script>
+const $ = s => document.querySelector(s);
+const fmt = n => n.toLocaleString("en-GB");
+const DAY0 = Date.UTC(1550, 0, 1);
+const dayOfYear = y => Math.round((Date.UTC(y, 0, 1) - DAY0) / 864e5);
+const X0 = dayOfYear(1600), X1 = dayOfYear(1811);
+let marriages = null, zee = null, zLens = false, zSet = null, zFams = [], lctx, N, P, day, yy, fam, pa, pb, pm, labels, order, members, pairsOfFam;
+let show = { fn: true, pn: true, single: true };
+let W, H, dpr, ctx, hctx, grid, upTo = X1, playing = false;
+const PAD_T = 90, PAD_B = 14, PAD_X = 10;
+
+const xOf = d => PAD_X + (d - X0) / (X1 - X0) * (W - 2 * PAD_X);
+const yOf = v => PAD_T + v / 65535 * (H - PAD_T - PAD_B);
+
+function size() {
+  const cv = $("#sky"), r = cv.getBoundingClientRect();
+  dpr = Math.min(2, window.devicePixelRatio || 1); W = r.width; H = r.height;
+  for (const c of [cv, $("#hl"), $("#lens")]) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
+  ctx = cv.getContext("2d"); hctx = $("#hl").getContext("2d"); lctx = $("#lens").getContext("2d"); lctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); hctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function arc(c, i, j) {
+  const x1 = xOf(day[i]), x2 = xOf(day[j]), y = yOf(yy[i]);
+  const h = Math.min(PAD_T - 6, 4 + Math.abs(x2 - x1) * .35);
+  c.moveTo(x1, y); c.quadraticCurveTo((x1 + x2) / 2, y - h, x2, y);
+}
+const isFN = m => (m & 3) !== 0;
+
+let drawnB = 0, drawnP = 0, cnt = { b: 0, p: 0, f: 0 }, famSeen;
+function resetSky() {
+  ctx.globalCompositeOperation = "source-over";
+  ctx.clearRect(0, 0, W, H);
+  drawnB = drawnP = 0; cnt = { b: 0, p: 0, f: 0 }; famSeen = new Uint16Array(labels.length);
+}
+function drawUntil(limit) {
+  ctx.globalCompositeOperation = "lighter";
+  let fn = new Path2D(), pn = new Path2D(), k = 0;
+  while (drawnP < P && pairEnd[order[drawnP]] < limit) {
+    const q = order[drawnP++], m = pm[q];
+    if (isFN(m) ? show.fn : show.pn) { arc(isFN(m) ? fn : pn, pa[q], pb[q]); k++; }
+    cnt.p++;
+    if (k > 6000) { strokeBatches(fn, pn); fn = new Path2D(); pn = new Path2D(); k = 0; }
+  }
+  strokeBatches(fn, pn);
+  while (drawnB < N && day[drawnB] < limit) {
+    const i = drawnB++, f = fam[i];
+    const x = xOf(day[i]), y = yOf(yy[i]), z = 0;
+    if (f) {
+      if (++famSeen[f] === 2) cnt.f++;
+      ctx.fillStyle = z ? "rgba(90,170,255,.35)" : "rgba(90,170,255,.012)"; ctx.fillRect(x - 2.5 * (1 + z * .4), y - 2.5 * (1 + z * .4), 5 * (1 + z * .4), 5 * (1 + z * .4));
+      ctx.fillStyle = z ? "rgba(235,250,255,.95)" : "rgba(220,245,255,.07)"; ctx.fillRect(x - .7 - z * .5, y - .7 - z * .5, 1.4 + z, 1.4 + z);
+    } else if (show.single) { ctx.fillStyle = z ? "rgba(160,200,255,.7)" : "rgba(80,120,190,.05)"; ctx.fillRect(x - .6 - z * .4, y - .6 - z * .4, 1.2 + z * .8, 1.2 + z * .8); }
+    cnt.b++;
+  }
+  ctx.globalCompositeOperation = "source-over";
+}
+function strokeBatches(fn, pn) {
+  ctx.lineWidth = .6;
+  ctx.strokeStyle = "rgba(127,232,255,.012)"; ctx.stroke(fn);
+  ctx.strokeStyle = "rgba(110,90,255,.035)"; ctx.stroke(pn);
+}
+function counters(limit) {
+  const y = Math.min(1810, new Date(DAY0 + limit * 864e5).getUTCFullYear() - (limit >= X1 ? 1 : 0));
+  const c = cnt;
+  $("#cYear").textContent = `1600–${y}`; $("#cBapt").textContent = fmt(c.b); $("#cPairs").textContent = fmt(c.p); $("#cFam").textContent = fmt(c.f);
+}
+function drawLens() {
+  lctx.clearRect(0, 0, W, H);
+  if (true) return;
+  lctx.fillStyle = "rgba(2,10,31,.86)"; lctx.fillRect(0, 0, W, H);
+  lctx.globalCompositeOperation = "lighter";
+  lctx.lineWidth = 1.2; lctx.strokeStyle = "rgba(85,242,200,.55)"; lctx.shadowColor = "rgba(85,242,200,.9)"; lctx.shadowBlur = 6;
+  lctx.beginPath();
+  for (const f of zFams) for (const q of (pairsOfFam[f] || [])) if (pairEnd[q] < upTo) arc(lctx, pa[q], pb[q]);
+  lctx.stroke(); lctx.shadowBlur = 0;
+  for (const i of zee.b) { if (day[i] >= upTo) continue; const x = xOf(day[i]), y = yOf(yy[i]);
+    lctx.fillStyle = "rgba(85,242,200,.25)"; lctx.beginPath(); lctx.arc(x, y, 4, 0, 7); lctx.fill();
+    lctx.fillStyle = "#dafff4"; lctx.beginPath(); lctx.arc(x, y, 1.6, 0, 7); lctx.fill(); }
+  lctx.globalCompositeOperation = "source-over";
+}
+function zCounts(limit) {
+  let b = 0, p = 0; const fs = new Set();
+  for (const i of zee.b) if (day[i] < limit) { b++; if (fam[i]) fs.add(fam[i]); }
+  for (const f of zFams) for (const q of (pairsOfFam[f] || [])) if (pairEnd[q] < limit) p++;
+  return { b, p, f: [...fs].filter(f => members[f].filter(j => day[j] < limit).length >= 2).length };
+}
+function redraw(limit) { resetSky(); drawUntil(limit); upTo = limit; counters(limit); drawLens(); }
+
+function play() {
+  if (playing) { playing = false; $("#play").textContent = "Replay 1600 → 1810"; return; }
+  playing = true; $("#play").textContent = "Pause";
+  if (upTo >= X1) redraw(X0);
+  const span = X1 - X0, dur = 12000; let last = performance.now();
+  const step = t => {
+    if (!playing) return;
+    const lim = Math.min(X1, upTo + span * (t - last) / dur); last = t;
+    drawUntil(lim); upTo = lim; counters(lim); if (zLens) drawLens();
+    $("#year").value = Math.min(1810, new Date(DAY0 + lim * 864e5).getUTCFullYear());
+    if (lim >= X1) { playing = false; $("#play").textContent = "Replay 1600 → 1810"; return; }
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+function buildGrid() {
+  const cs = 6, cols = Math.ceil(W / cs) + 1, rows = Math.ceil(H / cs) + 1;
+  const head = new Int32Array(cols * rows).fill(-1), next = new Int32Array(N);
+  for (let i = 0; i < N; i++) {
+    const c = Math.floor(xOf(day[i]) / cs) + Math.floor(yOf(yy[i]) / cs) * cols;
+    next[i] = head[c]; head[c] = i;
+  }
+  grid = { cs, cols, rows, head, next };
+}
+function nearest(mx, my) {
+  const { cs, cols, rows, head, next } = grid, cx = Math.floor(mx / cs), cy = Math.floor(my / cs);
+  let best = -1, bd = 49;
+  for (let gy = cy - 1; gy <= cy + 1; gy++) for (let gx = cx - 1; gx <= cx + 1; gx++) {
+    if (gx < 0 || gy < 0 || gx >= cols || gy >= rows) continue;
+    for (let i = head[gx + gy * cols]; i >= 0; i = next[i]) {
+      if (day[i] >= upTo || (!fam[i] && !show.single) || (zLens && !zSet.has(i))) continue;
+      const d = (xOf(day[i]) - mx) ** 2 + (yOf(yy[i]) - my) ** 2;
+      if (d < bd) { bd = d; best = i; }
+    }
+  }
+  return best;
+}
+const dateStr = d => new Date(DAY0 + d * 864e5).toISOString().slice(0, 10);
+const esc = t => t.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+const coupleName = f => esc(labels[f]).replace(" &amp; ", " × ");
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const STEP = 110, HOLD = 1800, FADE = 900;
+let strikes = [], hoverFam = 0, hoverSingle = -1, ambientOn = !REDUCED, nextAmbient = 0, raf = 0;
+
+function rng(seed) { let r = (seed * 9301 + 49297) % 233280; return () => ((r = (r * 9301 + 49297) % 233280) / 233280) - .5; }
+function jagged(x1, y1, x2, y2, cx, cy, seed, ampScale) {
+  const rnd = rng(seed), len = Math.hypot(x2 - x1, y2 - y1) + Math.abs(cy - (y1 + y2) / 2);
+  const n = Math.max(7, Math.round(len / 6)), amp = (3 + len * .07) * ampScale, pts = [];
+  for (let k = 0; k <= n; k++) {
+    const t = k / n, u = 1 - t;
+    let px = u * u * x1 + 2 * u * t * cx + t * t * x2, py = u * u * y1 + 2 * u * t * cy + t * t * y2;
+    if (k > 0 && k < n) { const w = Math.sin(Math.PI * t); px += rnd() * amp * w; py += rnd() * amp * w; }
+    pts.push([px, py]);
+  }
+  return pts;
+}
+function boltPoints(i, j, seed, fixedSeed) {
+  const x1 = xOf(day[i]), x2 = xOf(day[j]), y = yOf(yy[i]);
+  const h = 26 + (rng(fixedSeed)() + .5) * 46 + Math.abs(x2 - x1) * .3;
+  return jagged(x1, y, x2, y, (x1 + x2) / 2, Math.max(4, y - h), seed, 1);
+}
+function skyPoints(i, seed, fixedSeed) {
+  const x = xOf(day[i]), y = yOf(yy[i]), x0 = x + (rng(fixedSeed)() * 120);
+  return jagged(x0, 0, x, y, (x0 + x) / 2 + rng(fixedSeed + 7)() * 30, y / 2, seed, 1.6);
+}
+function strokeBolt(pts, upto, alpha) {
+  const m = Math.max(2, Math.floor(pts.length * upto) + 1);
+  const path = new Path2D(); path.moveTo(pts[0][0], pts[0][1]);
+  for (let k = 1; k < Math.min(m, pts.length); k++) path.lineTo(pts[k][0], pts[k][1]);
+  hctx.globalAlpha = alpha;
+  hctx.shadowColor = "rgba(127,232,255,.95)";
+  hctx.shadowBlur = 16; hctx.lineWidth = 4; hctx.strokeStyle = "rgba(60,150,255,.35)"; hctx.stroke(path);
+  hctx.shadowBlur = 8; hctx.lineWidth = 1.8; hctx.strokeStyle = "rgba(127,232,255,.9)"; hctx.stroke(path);
+  hctx.shadowBlur = 0; hctx.lineWidth = .8; hctx.strokeStyle = "#ffffff"; hctx.stroke(path);
+  if (false) {
+    const a = pts[Math.floor(pts.length * .45)], b = [a[0] + (Math.random() - .5) * 14, a[1] - 6 - Math.random() * 10];
+    const br = new Path2D(); br.moveTo(a[0], a[1]); br.lineTo((a[0] + b[0]) / 2 + (Math.random() - .5) * 4, (a[1] + b[1]) / 2); br.lineTo(b[0], b[1]);
+    hctx.lineWidth = .7; hctx.strokeStyle = "rgba(200,240,255,.7)"; hctx.stroke(br);
+  }
+  hctx.globalAlpha = 1;
+}
+function flash(i, size, alpha) {
+  const x = xOf(day[i]), y = yOf(yy[i]);
+  hctx.globalAlpha = alpha;
+  hctx.shadowColor = "rgba(127,232,255,1)"; hctx.shadowBlur = 14;
+  hctx.fillStyle = "#e9fbff"; hctx.beginPath(); hctx.arc(x, y, size, 0, 7); hctx.fill();
+  hctx.shadowBlur = 0; hctx.globalAlpha = 1;
+}
+const SKY = 320, AFTER = 260, ARC = 170;
+function glowArc(i, j, upto, alpha) {
+  const x1 = xOf(day[i]), x2 = xOf(day[j]), y = yOf(yy[i]);
+  const h = Math.min(y - 4, 18 + Math.abs(x2 - x1) * .45), cx = (x1 + x2) / 2, cy = y - h;
+  const path = new Path2D(), n = 24, m = Math.max(1, Math.round(n * upto));
+  path.moveTo(x1, y);
+  for (let k = 1; k <= m; k++) { const t = k / n, u = 1 - t; path.lineTo(u * u * x1 + 2 * u * t * cx + t * t * x2, u * u * y + 2 * u * t * cy + t * t * y); }
+  hctx.globalAlpha = alpha;
+  hctx.shadowColor = "rgba(127,232,255,.9)";
+  hctx.shadowBlur = 12; hctx.lineWidth = 3; hctx.strokeStyle = "rgba(60,150,255,.35)"; hctx.stroke(path);
+  hctx.shadowBlur = 4; hctx.lineWidth = 1.3; hctx.strokeStyle = "rgba(200,245,255,.95)"; hctx.stroke(path);
+  hctx.shadowBlur = 0; hctx.globalAlpha = 1;
+}
+function genBolt(x0, x1, y1, seed) {
+  const rnd = rng(seed), lines = [];
+  function channel(x, y, tx, ty, depth, width, alpha, branchP) {
+    const pts = [[x, y]]; let ang = Math.atan2(ty - y, tx - x);
+    const total = Math.hypot(tx - x, ty - y), stepL = depth ? 6 : 9;
+    let travelled = 0;
+    while (travelled < total) {
+      const want = Math.atan2(ty - y, tx - x);
+      ang = want + (rnd() * 1.4) + (ang - want) * .25;
+      const st = stepL * (.6 + (rnd() + .5) * .9);
+      x += Math.cos(ang) * st; y += Math.sin(ang) * st; travelled += st;
+      pts.push([x, y]);
+      if (depth < 2 && travelled < total * .85 && rnd() + .5 < branchP) {
+        const side = rnd() < 0 ? -1 : 1, ba = ang + side * (.5 + (rnd() + .5) * .75);
+        const bl = (total - travelled) * (.3 + (rnd() + .5) * .5) * (depth ? .75 : 1);
+        channel(x, y, x + Math.cos(ba) * bl, y + Math.sin(Math.min(Math.PI * .92, Math.max(.15, ba))) * bl, depth + 1, width * .45, alpha * .6, branchP * .7);
+      }
+    }
+    if (!depth) pts[pts.length - 1] = [tx, ty];
+    lines.push({ pts, depth, width, alpha });
+  }
+  channel(x0, 0, x1, y1, 0, 2.2, 1, .34);
+  return lines.sort((a, b) => b.depth - a.depth);
+}
+function drawBolt(lines, leaderY, intensity) {
+  if (intensity <= 0) return;
+  for (const pass of [0, 1, 2]) {
+    for (const L of lines) {
+      const path = new Path2D(); let started = false;
+      for (const [x, y] of L.pts) { if (y > leaderY) break; started ? path.lineTo(x, y) : path.moveTo(x, y); started = true; }
+      if (!started) continue;
+      const a = Math.min(1, L.alpha * intensity);
+      if (pass === 0) { hctx.shadowColor = "rgba(127,200,255,.9)"; hctx.shadowBlur = L.depth ? 6 : 22; hctx.lineWidth = L.width * 3.2; hctx.strokeStyle = `rgba(70,140,255,${.28 * a})`; }
+      else if (pass === 1) { hctx.shadowBlur = L.depth ? 2 : 8; hctx.lineWidth = L.width * 1.5; hctx.strokeStyle = `rgba(160,215,255,${.75 * a})`; }
+      else { hctx.shadowBlur = 0; hctx.lineWidth = Math.max(.5, L.width * .6); hctx.strokeStyle = `rgba(255,255,255,${a})`; }
+      hctx.lineJoin = "miter"; hctx.stroke(path);
+    }
+  }
+  hctx.shadowBlur = 0;
+}
+const LEAD = 240, FLASH = 90, GLOW = 520, GAP = 180;
+function boltIntensity(bt) {
+  if (bt < LEAD) return .55;
+  const r = bt - LEAD;
+  if (r < FLASH) return 1.6;
+  if (r < FLASH + GLOW) { const k = (r - FLASH) / GLOW; return (1 - k) * (k > .35 && k < .45 ? 1.4 : 1); }
+  return 0;
+}
+function familyPanel(s, ms, t, t0, fade) {
+  const mar = marriages && marriages[s.f], off = mar ? ARC : 0;
+  const n = ms.length, d0 = mar ? Math.min(mar[0], day[ms[0]]) : day[ms[0]], d1 = day[ms[n - 1]], span = Math.max(365, d1 - d0);
+  const zb = false;
+  const BOX = mar ? 46 : 0;
+  const pw = Math.min(W - 24, Math.max(mar || zb ? 360 : 240, 46 * (n - 1) + 110)), ph = (mar ? 140 : 118) + (zb ? 16 : 0) + BOX;
+  const fx = ms.reduce((a, j) => a + xOf(day[j]), 0) / n, fy = yOf(yy[ms[0]]);
+  const px = Math.max(12, Math.min(W - pw - 12, fx - pw / 2));
+  const py = fy - ph - 18 > 6 ? fy - ph - 18 : Math.min(H - ph - 6, fy + 18);
+  const appear = Math.min(1, Math.max(0, (t - t0 + 120) / 260)) * fade;
+  if (appear <= 0) return;
+  hctx.globalAlpha = appear;
+  hctx.fillStyle = "rgba(2,10,31,.86)"; hctx.strokeStyle = "rgba(127,232,255,.45)"; hctx.lineWidth = 1;
+  hctx.beginPath(); hctx.roundRect(px, py, pw, ph, 10); hctx.fill(); hctx.stroke();
+  const ax = fx, ay = py + ph > fy ? py : py + ph;
+  hctx.beginPath(); hctx.moveTo(ax, ay); hctx.lineTo(ax, fy + (ay < fy ? -6 : 6)); hctx.strokeStyle = "rgba(127,232,255,.35)"; hctx.stroke();
+  hctx.font = "500 13px Archivo, sans-serif"; hctx.fillStyle = "#dff7ff";
+  hctx.fillText(labels[s.f].replace(" & ", " × "), px + 14, py + 22, pw - 28);
+  hctx.font = "11px 'IBM Plex Mono', monospace"; hctx.fillStyle = "rgba(170,220,245,.8)";
+  hctx.fillText(`${n} children · ${dateStr(day[ms[0]]).slice(0, 4)}–${dateStr(d1).slice(0, 4)}`, px + 14, py + 38);
+  if (zb) { hctx.fillStyle = "rgba(85,242,200,.95)"; hctx.fillText(zb, px + 14, py + (mar ? 72 : 56), pw - 28); }
+  if (mar) {
+    hctx.fillStyle = "rgba(255,170,200,.9)";
+    hctx.fillText(`married ${dateStr(mar[0])}${mar[3] ? " · " + mar[3] : ""} · ${mar[1]} × ${mar[2]}`, px + 14, py + 56, pw - 28);
+  }
+  const lx = px + 30, rx = px + pw - 30, by = py + ph - 26 - BOX;
+  const X = j => lx + (day[j] - d0) / span * (rx - lx);
+  if (mar) {
+    const mx = lx + (mar[0] - d0) / span * (rx - lx), x2 = X(ms[0]), hit = t - t0 + ARC;
+    if (hit > 0) {
+      const p = Math.min(1, (t - t0) / ARC);
+      if (p > 0 && x2 - mx > 2) {
+        const h = 10 + (x2 - mx) * .35, cx = (mx + x2) / 2, path = new Path2D(), m = Math.max(1, Math.round(20 * p));
+        path.moveTo(mx, by);
+        for (let q = 1; q <= m; q++) { const tt = q / 20, u = 1 - tt; path.lineTo(u * u * mx + 2 * u * tt * cx + tt * tt * x2, u * u * by + 2 * u * tt * (by - h) + tt * tt * by); }
+        hctx.shadowColor = "rgba(255,138,168,.9)"; hctx.shadowBlur = 10; hctx.lineWidth = 2.2; hctx.strokeStyle = "rgba(255,138,168,.55)"; hctx.stroke(path);
+        hctx.shadowBlur = 0; hctx.lineWidth = 1; hctx.strokeStyle = "rgba(255,220,230,.95)"; hctx.stroke(path);
+      }
+      const burst = hit < 300 ? 1 - hit / 300 : 0, r = 4.5 + burst * 4;
+      hctx.shadowColor = "rgba(255,138,168,1)"; hctx.shadowBlur = 12; hctx.fillStyle = "#ffd6e2";
+      hctx.beginPath(); hctx.moveTo(mx, by - r); hctx.lineTo(mx + r, by); hctx.lineTo(mx, by + r); hctx.lineTo(mx - r, by); hctx.closePath(); hctx.fill();
+      hctx.shadowBlur = 0;
+    }
+  }
+  for (let k = 0; k < n - 1; k++) {
+    const p = (t - t0 - off - k * ARC) / ARC;
+    if (p <= 0) break;
+    const x1 = X(ms[k]), x2 = X(ms[k + 1]), h = 10 + (x2 - x1) * .35, cx = (x1 + x2) / 2;
+    const path = new Path2D(), m = Math.max(1, Math.round(20 * Math.min(1, p)));
+    path.moveTo(x1, by);
+    for (let q = 1; q <= m; q++) { const tt = q / 20, u = 1 - tt; path.lineTo(u * u * x1 + 2 * u * tt * cx + tt * tt * x2, u * u * by + 2 * u * tt * (by - h) + tt * tt * by); }
+    hctx.shadowColor = "rgba(127,232,255,.9)"; hctx.shadowBlur = 10; hctx.lineWidth = 2.4; hctx.strokeStyle = "rgba(60,150,255,.5)"; hctx.stroke(path);
+    hctx.shadowBlur = 3; hctx.lineWidth = 1.1; hctx.strokeStyle = "rgba(220,248,255,.95)"; hctx.stroke(path);
+    hctx.shadowBlur = 0;
+  }
+  let lastLabel = -1e9;
+  ms.forEach((j, k) => {
+    const hit = t - t0 - off - k * ARC + (k === 0 ? ARC : 0);
+    if (hit < 0) return;
+    const x = X(j), burst = hit < 300 ? 1 - hit / 300 : 0;
+    hctx.shadowColor = "rgba(127,232,255,1)"; hctx.shadowBlur = 10 + burst * 10;
+    hctx.fillStyle = "#e9fbff"; hctx.beginPath(); hctx.arc(x, by, 3.2 + burst * 4, 0, 7); hctx.fill(); hctx.shadowBlur = 0;
+    if (x - lastLabel > 30) {
+      hctx.font = "10px 'IBM Plex Mono', monospace"; hctx.fillStyle = "rgba(170,220,245,.75)"; hctx.textAlign = "center";
+      hctx.fillText(dateStr(day[j]).slice(0, 4), x, by + 16); hctx.textAlign = "left"; lastLabel = x;
+    }
+  });
+  if (mar) {
+    const wx = px + 12, wy = by + 26, ww = pw - 24, wh = BOX - 10;
+    hctx.fillStyle = "rgba(10,30,70,.95)"; hctx.strokeStyle = "rgba(127,232,255,.35)"; hctx.lineWidth = 1;
+    hctx.beginPath(); hctx.roundRect(wx, wy, ww, wh, 7); hctx.fill(); hctx.stroke();
+    hctx.font = "500 15px Archivo, sans-serif"; hctx.fillStyle = "#ffffff"; hctx.textAlign = "center";
+    hctx.fillText(`${mar[8] || "unknown"}, ${mar[7] || "unknown"}`, wx + ww / 2, wy + wh / 2 + 5, ww - 20);
+    hctx.textAlign = "left";
+  }
+  hctx.globalAlpha = 1;
+}
+function drawStrike(s, now) {
+  const ms = members[s.f].filter(j => day[j] < upTo);
+  if (ms.length < 2) return true;
+  const t = now - s.start, nb = ms.length - 1 + (marriages && marriages[s.f] ? 1 : 0);
+  const t0 = REDUCED ? -1e9 : 2 * GAP + LEAD + FLASH + 120, built = t0 + nb * ARC;
+  let fade = 1;
+  if (!s.hover) { const left = built + HOLD + FADE - t; if (left <= 0) return true; fade = Math.min(1, left / FADE); }
+  if (!s.bolts) {
+    const hits = [...new Set([ms[0], ms[Math.floor((ms.length - 1) / 2)], ms[ms.length - 1]])];
+    s.bolts = hits.map((j, k) => { const x = xOf(day[j]), y = yOf(yy[j]); return { j, delay: k * GAP, lines: genBolt(x + (rng(s.f * 3 + k)() * 160), x, y, s.f * 101 + k) }; });
+  }
+  if (!REDUCED) for (const b of s.bolts) {
+    const bt = t - b.delay; if (bt < 0) continue;
+    const it = boltIntensity(bt); if (it <= 0) continue;
+    const y = yOf(yy[b.j]);
+    drawBolt(b.lines, bt < LEAD ? y * (bt / LEAD) : 1e9, it);
+    if (bt >= LEAD) {
+      const x = xOf(day[b.j]), a = Math.min(1, it) * .55, g = hctx.createRadialGradient(x, y, 0, x, y, 70);
+      g.addColorStop(0, `rgba(200,240,255,${a})`); g.addColorStop(1, "rgba(200,240,255,0)");
+      hctx.fillStyle = g; hctx.fillRect(x - 70, y - 70, 140, 140);
+    }
+  }
+  ms.forEach(j => flash(j, 2.4, fade * .9));
+  familyPanel(s, ms, t, t0, fade);
+  return false;
+}
+function pickAmbient() {
+  if (zLens) { const ok = zFams.filter(f => f !== hoverFam && day[members[f][1]] < upTo); return ok.length ? ok[Math.floor(Math.random() * ok.length)] : 0; }
+  for (let tries = 0; tries < 40; tries++) {
+    const i = Math.floor(Math.random() * N), f = fam[i];
+    if (f && f !== hoverFam && members[f].length >= 4 && members[f].length <= 16 && day[members[f][members[f].length - 1]] < upTo) return f;
+  }
+  return 0;
+}
+function frame(now) {
+  raf = 0;
+  if (document.getElementById("tview").hidden) return;
+  hctx.clearRect(0, 0, W, H);
+  if (ambientOn && !playing && now > nextAmbient && strikes.filter(s => !s.hover).length < 1 && !hoverFam) {
+    const f = pickAmbient(); if (f) strikes.push({ f, start: now, hover: false, label: true });
+    nextAmbient = now + 1400 + Math.random() * 2200;
+  }
+  strikes = strikes.filter(s => !drawStrike(s, now));
+  if (hoverSingle >= 0) flash(hoverSingle, 3.5, 1);
+  if (strikes.length || hoverSingle >= 0 || ambientOn) raf = requestAnimationFrame(frame);
+}
+function wake() { if (!raf) raf = requestAnimationFrame(frame); }
+
+function highlight(i, mx, my) {
+  const tip = $("#tip");
+  const f = i >= 0 ? fam[i] : 0;
+  if (f !== hoverFam) {
+    strikes = strikes.filter(s => !s.hover);
+    hoverFam = f;
+    if (f) strikes.push({ f, start: performance.now(), hover: true, label: false });
+  }
+  hoverSingle = i >= 0 && !f ? i : -1;
+  if (i < 0) { tip.hidden = true; wake(); return; }
+  if (f) {
+    const ms = members[f], ps = pairsOfFam[f] || [];
+    const mar = marriages && marriages[f];
+    tip.innerHTML = `<b>${coupleName(f)}</b><br><span class="k">${ms.length} children baptised ${dateStr(day[ms[0]]).slice(0, 4)}–${dateStr(day[ms[ms.length - 1]]).slice(0, 4)}<br>${ps.length} sibling links${mar ? `<br>married ${dateStr(mar[0])}${mar[3] ? " in " + esc(mar[3]) : ""}: ${mar[4]} of ${ms.length} children linked to it` : "<br>no marriage linked"}</span>`;
+  } else {
+    tip.innerHTML = `<b>Baptism ${dateStr(day[i])}</b><br><span class="k">no sibling linked yet</span>`;
+  }
+  tip.hidden = false;
+  let lx = mx + 14, ly = my + 14; if (lx > W - 300) lx = mx - 300; if (ly > H - 80) ly = my - 80;
+  tip.style.left = Math.max(4, lx) + "px"; tip.style.top = Math.max(4, ly) + "px";
+  wake();
+}
+function toggle(btn, key) {
+  btn.onclick = () => { show[key] = !show[key]; btn.setAttribute("aria-pressed", show[key]); redraw(upTo); };
+}
+
+function b64(t) { const s = atob(t.trim()), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u.buffer; }
+async function load() {
+  const [meta, bb, pp] = await Promise.all([
+    fetch("meta.json").then(r => r.json()),
+    fetch("baptisms.b64.txt").then(r => r.text()).then(b64),
+    fetch("pairs.b64.txt").then(r => r.text()).then(b64),
+  ]);
+  labels = meta.labels; N = bb.byteLength / 10; P = pp.byteLength / 9;
+  const dv = new DataView(bb), dp = new DataView(pp);
+  day = new Uint32Array(N); yy = new Uint16Array(N); fam = new Uint32Array(N);
+  for (let i = 0, o = 0; i < N; i++, o += 10) { day[i] = dv.getUint32(o, true); yy[i] = dv.getUint16(o + 4, true); fam[i] = dv.getUint32(o + 6, true); }
+  pa = new Uint32Array(P); pb = new Uint32Array(P); pm = new Uint8Array(P);
+  for (let q = 0, o = 0; q < P; q++, o += 9) { pa[q] = dp.getUint32(o, true); pb[q] = dp.getUint32(o + 4, true); pm[q] = dp.getUint8(o + 8); }
+  window.pairEnd = new Uint32Array(P);
+  for (let q = 0; q < P; q++) pairEnd[q] = Math.max(day[pa[q]], day[pb[q]]);
+  order = new Uint32Array(P); for (let q = 0; q < P; q++) order[q] = q;
+  order.sort((a, b) => pairEnd[a] - pairEnd[b]);
+  members = new Array(labels.length);
+  for (let i = 0; i < N; i++) { const f = fam[i]; if (f) (members[f] || (members[f] = [])).push(i); }
+  pairsOfFam = new Array(labels.length);
+  for (let q = 0; q < P; q++) { const f = fam[pa[q]]; (pairsOfFam[f] || (pairsOfFam[f] = [])).push(q); }
+  fetch("marriages.json").then(r => r.json()).then(m => { marriages = m; }).catch(() => {});
+  fetch("zeeland-lens.json").then(r => r.json()).then(z => { zee = z; zSet = new Set(z.b); zFams = Object.keys(z.fam).map(Number).filter(f => members[f] && members[f].length >= 2); }).catch(() => { $("#tZee").hidden = true; });
+  $("#loading").remove();
+  size(); buildGrid();
+  if (REDUCED) redraw(X1); else play();
+  wake();
+}
+
+$("#play").onclick = play;
+$("#year").addEventListener("input", e => { playing = false; $("#play").textContent = "Replay 1600 → 1810"; redraw(dayOfYear(+e.target.value + 1)); });
+toggle($("#tFN"), "fn"); toggle($("#tPN"), "pn");
+$("#tBolt").setAttribute("aria-pressed", ambientOn);
+$("#tBolt").onclick = () => { ambientOn = !ambientOn; $("#tBolt").setAttribute("aria-pressed", ambientOn); if (!ambientOn) strikes = strikes.filter(s => s.hover); wake(); };
+$("#hl").addEventListener("mousemove", ev => { if (!grid) return; const r = ev.target.getBoundingClientRect(); const mx = ev.clientX - r.left, my = ev.clientY - r.top; highlight(nearest(mx, my), mx, my); });
+$("#hl").addEventListener("mouseleave", () => highlight(-1));
+let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if (!labels) return; size(); buildGrid(); redraw(upTo); }, 200); });
+load().catch(() => { $("#loading").textContent = "The data did not load. Reload the page to try again."; });
+
+function showView(v) {
+  const z = v === "zeeland";
+  document.getElementById("tview").hidden = z; document.getElementById("zview").hidden = !z;
+  window.scrollTo(0, 0);
+  const logo = document.querySelector((z ? "#zview" : "#tview") + " .brand"); if (logo) logo.src = "lods-of-pico-animated.svg?r=" + Date.now();
+  if (z) window.zeelandShow(); else { if (labels) { size(); buildGrid(); redraw(upTo); } wake(); }
+}
+document.getElementById("tZee").addEventListener("click", e => { e.preventDefault(); try { history.replaceState(null, "", "#zeeland"); } catch (_) {} showView("zeeland"); });
+document.querySelector("#zview .zback").addEventListener("click", e => { e.preventDefault(); try { history.replaceState(null, "", "#threads"); } catch (_) {} showView("threads"); });
+</script>
+<script>
+(() => {
+
+const $ = s => document.querySelector(s);
+const fmt = n => n.toLocaleString("en-GB");
+const esc = t => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let D, M, places, W, H, dpr, ctx, upTo = 1811, playing = false, sparks = [], bursts = [], filterPlace = null, shown = 12;
+const Y0 = 1575, Y1 = 1811;
+const yr = d => +d.slice(0, 4) + (+d.slice(5, 7) - 1) / 12;
+
+function proj() {
+  const lon0 = 3.25, lon1 = 4.75, lat0 = 51.15, lat1 = 52.3, k = Math.cos(51.7 * Math.PI / 180);
+  const sx = (W - 60) / ((lon1 - lon0) * k), sy = (H - 50) / (lat1 - lat0), s = Math.min(sx, sy);
+  const ox = (W - (lon1 - lon0) * k * s) / 2, oy = (H - (lat1 - lat0) * s) / 2;
+  return ([lat, lon]) => [ox + (lon - lon0) * k * s, oy + (lat1 - lat) * s];
+}
+let P;
+function size() {
+  const cv = $("#z-map"), r = cv.getBoundingClientRect();
+  dpr = Math.min(2, devicePixelRatio || 1); W = r.width; H = r.height;
+  cv.width = W * dpr; cv.height = H * dpr; ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  P = proj();
+}
+function arcPath(c, a, b, t) {
+  const mx = (a[0] + b[0]) / 2 - (b[1] - a[1]) * .18, my = (a[1] + b[1]) / 2 + (b[0] - a[0]) * .1;
+  if (t === undefined) { c.moveTo(a[0], a[1]); c.quadraticCurveTo(mx, my, b[0], b[1]); return; }
+  const u = 1 - t; return [u * u * a[0] + 2 * u * t * mx + t * t * b[0], u * u * a[1] + 2 * u * t * my + t * t * b[1]];
+}
+
+function counts(limit) {
+  const per = {}, ks = new Set(); let m = 0, fam = 0;
+  for (const x of M) { if (yr(x.d) >= limit) break; m++; if (x.k.length) { fam++; x.k.forEach(k => ks.add(k.join("|"))); } for (const z of x.z) per[z[2]] = (per[z[2]] || 0) + 1; }
+  return { per, m, kids: ks.size, fam };
+}
+
+function drawMap(now) {
+  ctx.clearRect(0, 0, W, H);
+  const L = P(D.leiden), c = counts(upTo);
+  ctx.font = "italic 300 15px Spectral, serif"; ctx.fillStyle = "rgba(143,179,217,.35)";
+  ctx.fillText("North Sea", P([51.95, 3.4])[0], P([51.95, 3.4])[1]);
+  ctx.fillText("Zeeland", P([51.36, 4.25])[0], P([51.36, 4.25])[1]);
+  ctx.fillText("Holland", P([52.05, 4.6])[0] - 30, P([52.05, 4.6])[1]);
+  ctx.globalCompositeOperation = "lighter";
+  for (const [k, v] of Object.entries(places)) {
+    const n = c.per[k] || 0; if (!n) continue;
+    const a = P([v[0], v[1]]);
+    ctx.lineWidth = Math.min(6, .6 + Math.sqrt(n) * .35);
+    ctx.strokeStyle = `rgba(85,242,200,${Math.min(.35, .05 + n / 600)})`;
+    ctx.beginPath(); arcPath(ctx, a, L); ctx.stroke();
+  }
+  for (const [k, v] of Object.entries(places)) {
+    const n = c.per[k] || 0, a = P([v[0], v[1]]), r = 2 + Math.sqrt(n) * 1.1;
+    const g = ctx.createRadialGradient(a[0], a[1], 0, a[0], a[1], r * 3);
+    g.addColorStop(0, n ? "rgba(85,242,200,.55)" : "rgba(79,111,153,.4)"); g.addColorStop(1, "rgba(85,242,200,0)");
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(a[0], a[1], r * 3, 0, 7); ctx.fill();
+    ctx.fillStyle = n ? "#d9fff4" : "#4f6f99"; ctx.beginPath(); ctx.arc(a[0], a[1], Math.max(1.5, r * .45), 0, 7); ctx.fill();
+  }
+  const lg = ctx.createRadialGradient(L[0], L[1], 0, L[0], L[1], 46);
+  lg.addColorStop(0, "rgba(127,232,255,.7)"); lg.addColorStop(1, "rgba(127,232,255,0)");
+  ctx.fillStyle = lg; ctx.beginPath(); ctx.arc(L[0], L[1], 46, 0, 7); ctx.fill();
+  for (const s of sparks) {
+    const t = Math.min(1, (now - s.t0) / s.dur), a = P(s.from), p = arcPath(null, a, L, t), q = arcPath(null, a, L, Math.max(0, t - .12));
+    ctx.strokeStyle = "rgba(220,255,245,.9)"; ctx.lineWidth = 1.6; ctx.shadowColor = "rgba(85,242,200,1)"; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.moveTo(q[0], q[1]); ctx.lineTo(p[0], p[1]); ctx.stroke(); ctx.shadowBlur = 0;
+  }
+  for (const b of bursts) {
+    const t = (now - b.t0) / 900; if (t > 1) continue;
+    for (let i = 0; i < b.n; i++) {
+      const ang = i / b.n * Math.PI * 2 + b.rot, d = 10 + t * 26;
+      ctx.fillStyle = `rgba(127,232,255,${1 - t})`; ctx.beginPath(); ctx.arc(L[0] + Math.cos(ang) * d, L[1] + Math.sin(ang) * d, 2.2, 0, 7); ctx.fill();
+    }
+  }
+  ctx.globalCompositeOperation = "source-over";
+  ctx.fillStyle = "#eaf9ff"; ctx.beginPath(); ctx.arc(L[0], L[1], 4, 0, 7); ctx.fill();
+  ctx.font = "600 13px Archivo, sans-serif"; ctx.fillText("Leiden", L[0] + 9, L[1] + 4);
+  ctx.font = "12px Archivo, sans-serif"; ctx.fillStyle = "rgba(217,255,244,.85)";
+  const top = Object.entries(places).sort((a, b) => b[1][2] - a[1][2]).slice(0, 7);
+  const OFF = { Middelburg: [-1, -8, "right"], Vlissingen: [-1, 16, "right"], Veere: [0, -12, "left"], Goes: [8, -8, "left"], Arnemuiden: [6, 14, "left"] };
+  for (const [k, v] of top) {
+    const a = P([v[0], v[1]]), o = OFF[k] || [7, -6, "left"];
+    ctx.textAlign = o[2]; ctx.fillText(v[3], a[0] + (o[2] === "right" ? -10 : o[0]), a[1] + o[1]);
+  }
+  ctx.textAlign = "left";
+  if (filterPlace && places[filterPlace]) { const v = places[filterPlace], a = P([v[0], v[1]]); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(a[0], a[1], 9, 0, 7); ctx.stroke(); }
+  $("#z-hYear").textContent = Math.min(1810, Math.floor(upTo - (upTo >= Y1 ? 1 : 0)));
+  $("#z-hStat").innerHTML = `${fmt(c.m)} marriages · ${fmt(c.kids)} children linked`;
+}
+
+function drawStrip() {
+  const cv = $("#z-strip"), r = cv.getBoundingClientRect(), w = r.width, h = r.height;
+  cv.width = w * dpr; cv.height = h * dpr; const c = cv.getContext("2d"); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const bins = {}; for (const x of M) { const d = Math.floor(yr(x.d) / 10) * 10; const b = bins[d] || (bins[d] = { F: 0, M: 0 }); for (const z of x.z) b[z[1]]++; }
+  const decs = []; for (let d = 1570; d <= 1810; d += 10) decs.push(d);
+  const max = Math.max(...decs.map(d => bins[d] ? bins[d].F + bins[d].M : 0)), bw = (w - 20) / decs.length, base = h - 18;
+  decs.forEach((d, i) => {
+    const b = bins[d] || { F: 0, M: 0 }, x = 10 + i * bw, past = d < upTo;
+    const hf = b.F / max * (base - 6), hm = b.M / max * (base - 6);
+    c.globalAlpha = past ? 1 : .3;
+    c.fillStyle = "#ff8aa8"; c.fillRect(x + 2, base - hf, bw - 4, hf);
+    c.fillStyle = "#55f2c8"; c.fillRect(x + 2, base - hf - hm - 1, bw - 4, hm);
+    c.globalAlpha = 1;
+    if (d % 50 === 0) { c.fillStyle = "#4f6f99"; c.font = "11px 'IBM Plex Mono', monospace"; c.fillText(d, x, h - 3); }
+  });
+  const px = 10 + (Math.min(upTo, 1811) - 1570) / 10 * bw;
+  c.strokeStyle = "rgba(230,244,255,.6)"; c.beginPath(); c.moveTo(px, 0); c.lineTo(px, base); c.stroke();
+}
+
+let raf = 0;
+function loop(now) {
+  raf = 0;
+  sparks = sparks.filter(s => now - s.t0 < s.dur);
+  bursts = bursts.filter(b => now - b.t0 < 900);
+  drawMap(now);
+  if (playing || sparks.length || bursts.length) raf = requestAnimationFrame(loop);
+}
+const wake = () => { if (!raf) raf = requestAnimationFrame(loop); };
+
+function play() {
+  if (playing) { playing = false; $("#z-play").textContent = "Replay 1575 → 1810"; return; }
+  playing = true; $("#z-play").textContent = "Pause";
+  if (upTo >= Y1) upTo = Y0;
+  let idx = M.findIndex(x => yr(x.d) >= upTo); if (idx < 0) idx = M.length;
+  let last = performance.now(); const dur = 26000;
+  const step = now => {
+    if (!playing) return;
+    upTo = Math.min(Y1, upTo + (Y1 - Y0) * (now - last) / dur); last = now;
+    while (idx < M.length && yr(M[idx].d) < upTo) {
+      const x = M[idx++];
+      for (const z of x.z) { const v = places[z[2]]; if (v && !REDUCED) sparks.push({ from: [v[0], v[1]], t0: now, dur: 900 + Math.random() * 400 }); }
+      if (x.k.length && !REDUCED) bursts.push({ t0: now + 1000, n: Math.min(12, x.k.length * 2), rot: Math.random() * 6 });
+    }
+    $("#z-year").value = Math.min(1810, Math.floor(upTo));
+    drawStrip();
+    if (upTo >= Y1) { playing = false; $("#z-play").textContent = "Replay 1575 → 1810"; }
+    else requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step); wake();
+}
+
+function nearestPlace(mx, my) {
+  let best = null, bd = 18 * 18;
+  for (const [k, v] of Object.entries(places)) { const a = P([v[0], v[1]]), d = (a[0] - mx) ** 2 + (a[1] - my) ** 2; if (d < bd) { bd = d; best = k; } }
+  return best;
+}
+function placeStats(k) {
+  let people = 0, kids = 0, fam = 0;
+  for (const x of M) { const zs = x.z.filter(z => z[2] === k); if (!zs.length) continue; people += zs.length; if (x.k.length) { fam++; kids += x.k.length; } }
+  return { people, kids, fam };
+}
+
+function renderFunnel() {
+  const fam = M.filter(x => x.k.length), kids = new Set(); fam.forEach(x => x.k.forEach(k => kids.add(k[0] + k[1] + k[2])));
+  const people = M.reduce((a, x) => a + x.z.length, 0);
+  const steps = [[people, "brides and grooms born in Zeeland", false], [M.length, "marriages in Leiden", false], [fam.length, "marriages with children we could link", true], [kids.size, "baptisms of their children", true]];
+  $("#z-funnel").innerHTML = steps.map(([n, l, hi]) => `<div class="step${hi ? " hi" : ""}"><div class="n">${fmt(n)}</div><div class="l">${l}</div></div>`).join("");
+}
+
+function kidLine(cv, x) {
+  const r = cv.getBoundingClientRect(), w = r.width, h = r.height, c = cv.getContext("2d");
+  cv.width = w * dpr; cv.height = h * dpr; c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const m = yr(x.d), ys = x.k.map(k => yr(k[0])), a = Math.min(m, ...ys), b = Math.max(m + 1, ...ys);
+  const X = v => 10 + (v - a) / (b - a) * (w - 20), base = h - 14;
+  c.strokeStyle = "rgba(127,232,255,.8)"; c.lineWidth = 1.1; c.shadowColor = "rgba(127,232,255,.9)"; c.shadowBlur = 6;
+  const pts = [m, ...ys];
+  for (let i = 1; i < pts.length; i++) { const x1 = X(pts[i - 1]), x2 = X(pts[i]); c.beginPath(); c.moveTo(x1, base); c.quadraticCurveTo((x1 + x2) / 2, base - 6 - (x2 - x1) * .35, x2, base); c.strokeStyle = i === 1 ? "rgba(255,138,168,.85)" : "rgba(127,232,255,.8)"; c.stroke(); }
+  c.shadowBlur = 0;
+  c.fillStyle = "#ff8aa8"; const mx = X(m); c.beginPath(); c.moveTo(mx, base - 4); c.lineTo(mx + 4, base); c.lineTo(mx, base + 4); c.lineTo(mx - 4, base); c.fill();
+  c.fillStyle = "#e9fbff"; ys.forEach(v => { c.beginPath(); c.arc(X(v), base, 2.6, 0, 7); c.fill(); });
+  c.font = "10px 'IBM Plex Mono', monospace"; c.fillStyle = "#4f6f99";
+  c.fillText(Math.floor(a), 2, h - 1); const t = String(Math.floor(b)); c.fillText(t, w - c.measureText(t).width - 2, h - 1);
+}
+function renderCards() {
+  let list = M.filter(x => x.k.length && (!filterPlace || x.z.some(z => z[2] === filterPlace)));
+  list.sort((a, b) => b.k.length - a.k.length || a.d.localeCompare(b.d));
+  const name = filterPlace ? places[filterPlace][3] : null;
+  $("#z-fText").textContent = filterPlace ? `${list.length} marriages with a parent born in ${name}` : `The ${list.length} marriages with children we could link, largest families first. Click a place on the map to filter.`;
+  $("#z-fClear").hidden = !filterPlace;
+  const part = list.slice(0, shown);
+  $("#z-cards").innerHTML = part.map((x, i) => {
+    const z = x.z[0], both = x.z.length > 1;
+    const zLine = x.z.map(q => `<b>${esc(q[0])}</b> <span class="from">born in ${esc(places[q[2]] ? places[q[2]][3] : q[2])}</span>`).join(" × ");
+    const partner = both ? "" : `<div class="other">married ${esc(z[3] || "unknown")}${z[4] ? ", born in " + esc(z[4]) : ""}</div>`;
+    const kids = x.k.map(k => `${esc(k[1])} (${k[0].slice(0, 4)})`).join(", ");
+    return `<article class="card"><div class="date">married ${x.d}</div><div class="who">${zLine}</div>${partner}<canvas data-i="${i}" role="img" aria-label="Marriage and ${x.k.length} children on a timeline"></canvas><div class="kids">${x.k.length} ${x.k.length === 1 ? "child" : "children"}: ${kids}</div></article>`;
+  }).join("");
+  document.querySelectorAll("#z-cards canvas").forEach(cv => kidLine(cv, part[+cv.dataset.i]));
+  $("#z-more").hidden = list.length <= shown;
+}
+
+async function load() {
+  D = await fetch("zeeland.json").then(r => r.json());
+  M = D.marriages; places = D.places;
+  renderFunnel(); size(); drawStrip(); drawMap(performance.now()); renderCards();
+}
+$("#z-play").onclick = play;
+$("#z-year").addEventListener("input", e => { playing = false; $("#z-play").textContent = "Replay 1575 → 1810"; upTo = +e.target.value + 1; drawStrip(); drawMap(performance.now()); });
+$("#z-map").addEventListener("mousemove", ev => {
+  const r = ev.target.getBoundingClientRect(), mx = ev.clientX - r.left, my = ev.clientY - r.top, k = nearestPlace(mx, my), tip = $("#z-tip");
+  if (!k) { tip.hidden = true; ev.target.style.cursor = "crosshair"; return; }
+  const s = placeStats(k); ev.target.style.cursor = "pointer";
+  tip.innerHTML = `<b>${esc(places[k][3])}</b><br><span class="k">${s.people} brides and grooms born here<br>${s.fam} marriages with ${s.kids} linked children<br>click to show their families</span>`;
+  tip.hidden = false; let lx = mx + 14; if (lx > W - 290) lx = mx - 290; tip.style.left = lx + "px"; tip.style.top = (my + 12) + "px";
+});
+$("#z-map").addEventListener("mouseleave", () => $("#z-tip").hidden = true);
+$("#z-map").addEventListener("click", ev => { const r = ev.target.getBoundingClientRect(), k = nearestPlace(ev.clientX - r.left, ev.clientY - r.top); filterPlace = k && k !== filterPlace ? k : null; shown = 12; renderCards(); drawMap(performance.now()); if (filterPlace) $("#z-cards").scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: "start" }); });
+$("#z-fClear").onclick = () => { filterPlace = null; shown = 12; renderCards(); drawMap(performance.now()); };
+$("#z-more").onclick = () => { shown += 24; renderCards(); };
+let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if (!D || document.getElementById("zview").hidden) return; size(); drawStrip(); drawMap(performance.now()); renderCards(); }, 200); });
+let started = false;
+window.zeelandShow = () => {
+  if (!started) { started = true; load().then(() => { if (!REDUCED) play(); }).catch(() => { $("#z-funnel").textContent = "The data did not load. Reload the page to try again."; }); }
+  else { size(); drawStrip(); drawMap(performance.now()); renderCards(); }
+};
+
+})();
+if (location.hash === "#zeeland") showView("zeeland");
+</script>

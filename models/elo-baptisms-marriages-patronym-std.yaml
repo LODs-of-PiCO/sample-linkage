@@ -1,0 +1,116 @@
+---
+# ********************************************* #
+#                                               #
+#  burgerLinker data model: ELO baptisms to     #
+#  ELO DTB marriages, by patronym,              #
+#  standardised given names                     #
+#                                               #
+#  Links the parents of a baptised child to     #
+#  the bride and groom of a marriage, with      #
+#  burgerLinker's between_b_m: father = groom,  #
+#  mother = bride.                              #
+#                                               #
+#  Input: ELO baptisms before 1811              #
+#  (select_baptisms.sh) and ELO DTB marriages   #
+#  before 1811 (select_marriages.sh), both      #
+#  with the standardised given names from       #
+#  standardise_given_names.py, in one file.     #
+#                                               #
+#  BIRTHS    = baptised child with its parents  #
+#  MARRIAGES = bride and groom of ondertrouw    #
+#              and huwelijk records             #
+#  DEATHS    = not used, returns nothing        #
+#                                               #
+# ********************************************* #
+
+# Notes on the data:
+# - A baptism record has sdo:additionalType
+#   ThesaurusHistorischePersoonsgegevens/548, a marriage record
+#   sdo:additionalType sourcetypes/549. Both have an xsd:date in
+#   sdo:dateCreated; for a marriage that is the marriage date, or
+#   the ondertrouw date when there is no marriage date.
+# - Surname = the patronym (pnv:patronym) only, as written, so
+#   "Pieters" is compared as if it were a family name. Parents,
+#   brides and grooms without a patronym are left out;
+#   elo-baptisms-marriages-familyname-std.yaml covers the family name.
+# - Given names are the standardised forms (slk:standardGivenName,
+#   Bloothooft's given-name list) for parents, brides and grooms.
+# - The parents of bride and groom are not retrieved, so
+#   burgerLinker warns about the missing ?brideFather etc.
+#   variables. They are only needed for between_m_m.
+
+# Return all baptised children with their father and mother.
+# Same as in elo-baptisms-patronym-std.yaml.
+BIRTHS: >
+  PREFIX picom: <https://personsincontext.org/model#>
+  PREFIX pnv: <https://w3id.org/pnv#>
+  PREFIX prov: <http://www.w3.org/ns/prov#>
+  PREFIX sdo: <https://schema.org/>
+  PREFIX slk: <https://github.com/LODs-of-PiCO/sample-linkage#>
+
+  SELECT *
+  WHERE {
+    {
+      SELECT DISTINCT *
+      WHERE {
+        ?event sdo:additionalType <https://terms.personsincontext.org/ThesaurusHistorischePersoonsgegevens/548> ;
+               sdo:dateCreated ?eventDate .
+        ?newborn prov:hadPrimarySource ?event ;
+                 picom:hasRole <https://terms.personsincontext.org/roles/575> .
+      }
+    }
+    OPTIONAL { ?newborn sdo:givenName ?newbornGivenName }
+    OPTIONAL { ?newborn sdo:parent ?newbornFather .
+               ?newbornFather sdo:gender sdo:Male ;
+                              slk:standardGivenName ?newbornFatherGivenName ;
+                              sdo:additionalName/pnv:patronym ?newbornFatherFamilyName .
+               BIND(sdo:Male AS ?newbornFatherGender)
+    }
+    OPTIONAL { ?newborn sdo:parent ?newbornMother .
+               ?newbornMother sdo:gender sdo:Female ;
+                              slk:standardGivenName ?newbornMotherGivenName ;
+                              sdo:additionalName/pnv:patronym ?newbornMotherFamilyName .
+               BIND(sdo:Female AS ?newbornMotherGender)
+    }
+  }
+
+# Not used. burgerLinker requires the entry, so this query
+# returns no rows.
+DEATHS: >
+  PREFIX sdo: <https://schema.org/>
+
+  SELECT *
+  WHERE {
+    ?event sdo:dateCreated ?eventDate .
+    ?deceased ?p ?event .
+    FILTER(false)
+  }
+
+# Return the bride and groom of every marriage record.
+MARRIAGES: >
+  PREFIX picom: <https://personsincontext.org/model#>
+  PREFIX pnv: <https://w3id.org/pnv#>
+  PREFIX prov: <http://www.w3.org/ns/prov#>
+  PREFIX sdo: <https://schema.org/>
+  PREFIX slk: <https://github.com/LODs-of-PiCO/sample-linkage#>
+
+  SELECT *
+  WHERE {
+    ?event sdo:additionalType <https://terms.personsincontext.org/sourcetypes/549> ;
+           sdo:dateCreated ?eventDate .
+    ?bride prov:hadPrimarySource ?event ;
+           picom:hasRole <https://terms.personsincontext.org/roles/574> ;
+           sdo:gender sdo:Female ;
+           slk:standardGivenName ?brideGivenName ;
+           sdo:additionalName/pnv:patronym ?brideFamilyName ;
+           sdo:spouse ?groom .
+    ?groom prov:hadPrimarySource ?event ;
+           picom:hasRole <https://terms.personsincontext.org/roles/574> ;
+           sdo:gender sdo:Male ;
+           slk:standardGivenName ?groomGivenName ;
+           sdo:additionalName/pnv:patronym ?groomFamilyName .
+    BIND(sdo:Female AS ?brideGender)
+    BIND(sdo:Male AS ?groomGender)
+  }
+
+...  # EOF

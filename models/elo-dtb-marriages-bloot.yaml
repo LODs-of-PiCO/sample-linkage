@@ -1,0 +1,142 @@
+---
+# ********************************************* #
+#                                               #
+#  burgerLinker data model: ELO DTB marriages,  #
+#  standardised given names (Bloothooft)        #
+#                                               #
+#  Links the parents of a baptised child to     #
+#  the bride and groom of a marriage, with      #
+#  burgerLinker's between_b_m. Children whose   #
+#  parents link to the same marriage are        #
+#  siblings.                                    #
+#                                               #
+#  Input: ELO DTB baptisms (dtb_dopen) and      #
+#  marriages (dtb_trouwen) in PiCo, as made by  #
+#  elo-dtb with a2a-to-pico, plus the           #
+#  standardised given names from                #
+#  standardise_given_names.py.                  #
+#                                               #
+#  BIRTHS    = baptised child with its parents  #
+#  MARRIAGES = bride and groom of ondertrouw    #
+#              and huwelijk records             #
+#  DEATHS    = not used, returns nothing        #
+#                                               #
+# ********************************************* #
+
+# Notes on the ELO DTB data:
+# - A baptism record is an sdo:ArchiveComponent with
+#   sdo:additionalType eventtypes/548 and sdo:dateCreated.
+#   A marriage record (ondertrouw and/or huwelijk) has
+#   sdo:additionalType sourcetypes/549. burgerLinker's own
+#   PiCo models expect sourcetypes/551 and 552.
+# - The marriage date is a plain string ("1649-11-19"@nl).
+#   Some records have two dates (ondertrouw and huwelijk),
+#   which gives two rows, and a few have text instead of a
+#   date; only values of the form YYYY-MM-DD are used.
+# - Many persons only have a patronym (pnv:patronym) and no
+#   sdo:familyName. The patronym is used as the family name
+#   when there is no sdo:familyName.
+# - The given names of parents, bride and groom are the
+#   standardised forms that scripts/standardise_given_names.py
+#   adds as sdo:givenNameBloot (Bloothooft's given-name list).
+#   Persons without one ("N.n.") are left out.
+# - The parents of bride and groom are not retrieved yet, so
+#   burgerLinker warns about the missing ?brideFather etc.
+#   variables. They are only needed for between_m_m.
+
+# Return all baptised children with their father and mother.
+# Same as in elo-dtb-siblings-bloot.yaml.
+BIRTHS: >
+  PREFIX picom: <https://personsincontext.org/model#>
+  PREFIX pnv: <https://w3id.org/pnv#>
+  PREFIX prov: <http://www.w3.org/ns/prov#>
+  PREFIX sdo: <https://schema.org/>
+
+  SELECT *
+  WHERE {
+    {
+      SELECT DISTINCT *
+      WHERE {
+        ?event sdo:additionalType <https://terms.personsincontext.org/eventtypes/548> ;
+               sdo:dateCreated ?eventDate .
+        ?newborn prov:hadPrimarySource ?event ;
+                 picom:hasRole <https://terms.personsincontext.org/roles/575> .
+      }
+    }
+    OPTIONAL { ?newborn sdo:gender ?newbornGender }
+    OPTIONAL { ?newborn picom:hasAge ?newbornAge }
+    OPTIONAL { ?newborn sdo:givenName ?newbornGivenName ;
+                        sdo:familyName ?newbornFamilyName . }
+    OPTIONAL { ?newborn sdo:parent ?newbornFather .
+               ?newbornFather sdo:gender sdo:Male ;
+                              sdo:givenNameBloot ?newbornFatherGivenName .
+               OPTIONAL { ?newbornFather sdo:familyName ?fatherFamilyName }
+               OPTIONAL { ?newbornFather sdo:additionalName/pnv:patronym ?fatherPatronym }
+               OPTIONAL { ?newbornFather picom:hasAge ?newbornFatherAge }
+               BIND(COALESCE(?fatherFamilyName, ?fatherPatronym) AS ?newbornFatherFamilyName)
+               BIND(sdo:Male AS ?newbornFatherGender)
+    }
+    OPTIONAL { ?newborn sdo:parent ?newbornMother .
+               ?newbornMother sdo:gender sdo:Female ;
+                              sdo:givenNameBloot ?newbornMotherGivenName .
+               OPTIONAL { ?newbornMother sdo:familyName ?motherFamilyName }
+               OPTIONAL { ?newbornMother sdo:additionalName/pnv:patronym ?motherPatronym }
+               OPTIONAL { ?newbornMother picom:hasAge ?newbornMotherAge }
+               BIND(COALESCE(?motherFamilyName, ?motherPatronym) AS ?newbornMotherFamilyName)
+               BIND(sdo:Female AS ?newbornMotherGender)
+    }
+  }
+
+# Not used. burgerLinker requires the entry, so this query
+# returns no rows.
+DEATHS: >
+  PREFIX sdo: <https://schema.org/>
+
+  SELECT *
+  WHERE {
+    ?event sdo:dateCreated ?eventDate .
+    ?deceased ?p ?event .
+    FILTER(false)
+  }
+
+# Return the bride and groom of every marriage record.
+MARRIAGES: >
+  PREFIX picom: <https://personsincontext.org/model#>
+  PREFIX pnv: <https://w3id.org/pnv#>
+  PREFIX prov: <http://www.w3.org/ns/prov#>
+  PREFIX sdo: <https://schema.org/>
+
+  SELECT *
+  WHERE {
+    {
+      SELECT DISTINCT *
+      WHERE {
+        ?event sdo:additionalType <https://terms.personsincontext.org/sourcetypes/549> ;
+               sdo:dateCreated ?eventDate .
+        FILTER(REGEX(STR(?eventDate), "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"))
+
+        ?bride prov:hadPrimarySource ?event ;
+               picom:hasRole <https://terms.personsincontext.org/roles/574> ;
+               sdo:gender sdo:Female ;
+               sdo:givenNameBloot ?brideGivenName ;
+               sdo:spouse ?groom .
+        ?groom prov:hadPrimarySource ?event ;
+               picom:hasRole <https://terms.personsincontext.org/roles/574> ;
+               sdo:gender sdo:Male ;
+               sdo:givenNameBloot ?groomGivenName .
+
+        OPTIONAL { ?bride sdo:familyName ?brideSurname }
+        OPTIONAL { ?bride sdo:additionalName/pnv:patronym ?bridePatronym }
+        OPTIONAL { ?groom sdo:familyName ?groomSurname }
+        OPTIONAL { ?groom sdo:additionalName/pnv:patronym ?groomPatronym }
+        BIND(COALESCE(?brideSurname, ?bridePatronym) AS ?brideFamilyName)
+        BIND(COALESCE(?groomSurname, ?groomPatronym) AS ?groomFamilyName)
+        BIND(sdo:Female AS ?brideGender)
+        BIND(sdo:Male AS ?groomGender)
+      }
+    }
+    OPTIONAL { ?bride picom:hasAge ?brideAge }
+    OPTIONAL { ?groom picom:hasAge ?groomAge }
+  }
+
+...  # EOF
