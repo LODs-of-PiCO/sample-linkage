@@ -34,8 +34,8 @@ body { font: 16px/1.55 var(--ui); }
 h1 { font: 300 clamp(30px, 5vw, 54px)/1.05 var(--display); margin: 6px 0 0; letter-spacing: -.01em; text-wrap: balance; }
 h1 em { font-style: italic; color: var(--amber); text-shadow: 0 0 18px rgba(127,232,255,.55); }
 .lede { color: var(--muted); max-width: 66ch; margin: 10px 0 0; }
-.counters { display: flex; flex-wrap: wrap; gap: 14px 40px; align-items: flex-end; }
-.counter .n { font: 300 clamp(28px, 4vw, 44px)/1 var(--display); font-variant-numeric: tabular-nums lining-nums; }
+.counters { display: flex; flex-wrap: wrap; gap: 12px 30px; align-items: flex-end; }
+.counter .n { font: 300 clamp(24px, 3.3vw, 40px)/1 var(--display); font-variant-numeric: tabular-nums lining-nums; }
 .counter .l { font-size: 13px; color: var(--muted); margin-top: 4px; }
 .counter.year .n { color: var(--amber); text-shadow: 0 0 16px rgba(127,232,255,.45); }
 .stage { position: relative; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: radial-gradient(70% 90% at 55% 50%, var(--glow) 0%, var(--night-2) 55%, var(--night) 100%); }
@@ -46,11 +46,17 @@ h1 em { font-style: italic; color: var(--amber); text-shadow: 0 0 18px rgba(127,
 .tip { position: absolute; z-index: 2; pointer-events: none; background: rgba(2,10,31,.92); border: 1px solid var(--line); color: var(--ink); font-size: 13px; line-height: 1.45; padding: 8px 11px; border-radius: 8px; max-width: 300px; }
 .tip b { font-weight: 600; }
 .tip .k { color: var(--muted); }
+.rel-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; font-size: 13px; color: var(--muted); margin: 0 0 8px; }
+.rel-legend .t { color: var(--faint); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.rel-legend .r { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+.rel-legend .r i { width: 16px; height: 3px; border-radius: 2px; }
+.rel-legend .r b { font-weight: 500; font-variant-numeric: tabular-nums; color: var(--ink); }
 .loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 14px; }
 .controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
 button { font: 500 14px var(--ui); color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 7px 16px; cursor: pointer; }
 button:hover { border-color: var(--muted); }
 button.play { background: var(--amber); border-color: var(--amber); color: var(--night); }
+button.pauseAll[aria-pressed="true"] { border-color: var(--amber); color: var(--amber); }
 a.btnlink { font: 500 14px var(--ui); color: var(--night); background: var(--sea); border: 1px solid var(--sea); border-radius: 999px; padding: 7px 16px; text-decoration: none; }
 a.btnlink:hover { filter: brightness(1.1); }
 a.btnlink:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
@@ -118,9 +124,11 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--amber); min-width: 0; }
     <div class="counter"><div class="n" id="cBapt">–</div><div class="l">baptisms</div></div>
     <div class="counter"><div class="n" id="cPairs">–</div><div class="l">sibling links</div></div>
     <div class="counter"><div class="n" id="cFam">–</div><div class="l">families of two or more children</div></div>
+    <div class="counter"><div class="n" id="cMar">–</div><div class="l">marriage records · <span id="cMarL">–</span> linked to baptisms</div></div>
   </div>
 
   <div>
+    <div class="rel-legend" id="relLegend" aria-label="Lightning colour: church of baptism"></div>
     <div class="stage" id="stage">
       <canvas id="sky" role="img" aria-label="All baptisms in the Leiden region from 1600 to 1810 as points by date, with arcs between baptisms linked as siblings"></canvas>
       <canvas id="lens" aria-hidden="true"></canvas>
@@ -133,6 +141,7 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--amber); min-width: 0; }
 
   <div class="controls">
     <button class="play" id="play">Replay 1600 → 1810</button>
+    <button class="pauseAll" aria-pressed="false">Pause animations</button>
     <input type="range" id="year" min="1600" max="1810" step="1" value="1810" aria-label="Show baptisms up to this year">
     <button id="tFN" aria-pressed="true">Family-name links</button>
     <button id="tPN" aria-pressed="true">Patronym-only links</button>
@@ -147,12 +156,7 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--amber); min-width: 0; }
     <span><i class="dot" style="background:var(--faint)"></i>baptism without a linked sibling</span>
     <span><i class="thread" style="background:var(--amber)"></i>sibling link found on family name</span>
     <span><i class="thread" style="background:var(--teal)"></i>sibling link found on patronym only</span>
-    <span style="flex-basis:100%;height:0"></span>
-    <span>lightning and children by church of baptism:</span>
-    <span><i class="thread" style="background:#ffb020;box-shadow:0 0 6px #ffb020"></i>Nederduitse Gereformeerde Kerk</span>
-    <span><i class="thread" style="background:#ff3fa4;box-shadow:0 0 6px #ff3fa4"></i>Rooms-Katholieke Kerk</span>
-    <span><i class="thread" style="background:#8cff3f;box-shadow:0 0 6px #8cff3f"></i>Remonstrantse Broederschap</span>
-    <span><i class="thread" style="background:#ff5b45;box-shadow:0 0 6px #ff5b45"></i>other or unknown</span>
+
     <span><i class="dot" style="background:var(--rose);border-radius:1px;transform:rotate(45deg)"></i>marriage of the parents (in the family panel)</span>
   </div>
 
@@ -182,6 +186,7 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--amber); min-width: 0; }
     <div class="strip"><canvas id="z-strip" role="img" aria-label="Marriages of Zeeland-born brides and grooms per decade"></canvas></div>
     <div class="controls">
       <button class="play" id="z-play">Replay 1575 → 1810</button>
+      <button class="pauseAll" aria-pressed="false">Pause animations</button>
       <input type="range" id="z-year" min="1575" max="1810" step="1" value="1810" aria-label="Show marriages up to this year">
     </div>
     <div class="legend">
@@ -211,7 +216,7 @@ const fmt = n => n.toLocaleString("en-GB");
 const DAY0 = Date.UTC(1550, 0, 1);
 const dayOfYear = y => Math.round((Date.UTC(y, 0, 1) - DAY0) / 864e5);
 const X0 = dayOfYear(1600), X1 = dayOfYear(1811);
-let marriages = null, zee = null, zLens = false, zSet = null, zFams = [], lctx, N, P, day, yy, fam, pa, pb, pm, labels, order, members, pairsOfFam;
+let playRun = 0, mcount = null, marriages = null, zee = null, zLens = false, zSet = null, zFams = [], lctx, N, P, day, yy, fam, pa, pb, pm, labels, order, members, pairsOfFam;
 let show = { fn: true, pn: true, single: true };
 let W, H, dpr, ctx, hctx, grid, upTo = X1, playing = false;
 const PAD_T = 90, PAD_B = 14, PAD_X = 10;
@@ -270,6 +275,11 @@ function strokeBatches(fn, pn) {
 function counters(limit) {
   const y = Math.min(1810, new Date(DAY0 + limit * 864e5).getUTCFullYear() - (limit >= X1 ? 1 : 0));
   const c = cnt;
+  if (mcount) {
+    const yf = new Date(DAY0 + limit * 864e5), yy0 = yf.getUTCFullYear(), frac = (limit - dayOfYear(yy0)) / 365.25;
+    const upto = arr => { let n = 0; for (let k = 0; k < arr.length; k++) { const y = mcount.first + k; if (y < yy0) n += arr[k]; else if (y === yy0) n += arr[k] * Math.min(1, Math.max(0, frac)); } return Math.round(n); };
+    $("#cMar").textContent = fmt(upto(mcount.all)); $("#cMarL").textContent = fmt(upto(mcount.linked));
+  }
   $("#cYear").textContent = `1600–${y}`; $("#cBapt").textContent = fmt(c.b); $("#cPairs").textContent = fmt(c.p); $("#cFam").textContent = fmt(c.f);
 }
 function drawLens() {
@@ -295,16 +305,16 @@ function zCounts(limit) {
 function redraw(limit) { resetSky(); drawUntil(limit); upTo = limit; counters(limit); drawLens(); }
 
 function play() {
-  if (playing) { playing = false; $("#play").textContent = "Replay 1600 → 1810"; return; }
-  playing = true; $("#play").textContent = "Pause";
+  if (playing) { playing = false; return; }
+  playing = true; const run = ++playRun;
   if (upTo >= X1) redraw(X0);
   const span = X1 - X0, dur = 12000; let last = performance.now();
   const step = t => {
-    if (!playing) return;
+    if (!playing || run !== playRun) return;
     const lim = Math.min(X1, upTo + span * (t - last) / dur); last = t;
     drawUntil(lim); upTo = lim; counters(lim); if (zLens) drawLens();
     $("#year").value = Math.min(1810, new Date(DAY0 + lim * 864e5).getUTCFullYear());
-    if (lim >= X1) { playing = false; $("#play").textContent = "Replay 1600 → 1810"; return; }
+    if (lim >= X1) { playing = false; return; }
     requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
@@ -578,6 +588,7 @@ function pickAmbient() {
 }
 function frame(now) {
   raf = 0;
+  if (paused) return;
   if (document.getElementById("tview").hidden) return;
   hctx.clearRect(0, 0, W, H);
   if (ambientOn && !playing && now > nextAmbient && strikes.filter(s => !s.hover).length < 1 && !hoverFam) {
@@ -638,7 +649,16 @@ async function load() {
   pairsOfFam = new Array(labels.length);
   for (let q = 0; q < P; q++) { const f = fam[pa[q]]; (pairsOfFam[f] || (pairsOfFam[f] = [])).push(q); }
   fetch("marriages.json").then(r => r.json()).then(m => { marriages = m; }).catch(() => {});
-  fetch("religion.b64.txt").then(r => r.text()).then(t => { relB = new Uint8Array(b64(t)); }).catch(() => {});
+  fetch("marriage-counts.json").then(r => r.json()).then(m => { mcount = m; counters(upTo); }).catch(() => {});
+  fetch("religion.b64.txt").then(r => r.text()).then(t => {
+    relB = new Uint8Array(b64(t));
+    const c = [0, 0, 0, 0]; for (const v of relB) c[v]++;
+    const names = ["Nederduitse Gereformeerde Kerk", "Rooms-Katholieke Kerk", "Remonstrantse Broederschap", "other or unknown"];
+    $("#relLegend").innerHTML = `<div class="t">Lightning: church of baptism</div>` + names.map((n, k) => {
+      const col = rgba(REL[k].rgb, 1), pct = 100 * c[k] / relB.length;
+      return `<div class="r"><i style="background:${col};box-shadow:0 0 6px ${col}"></i>${n} <b>${pct < 1 ? pct.toFixed(1) : Math.round(pct)}%</b></div>`;
+    }).join("");
+  }).catch(() => { $("#relLegend").remove(); });
   fetch("zeeland-lens.json").then(r => r.json()).then(z => { zee = z; zSet = new Set(z.b); zFams = Object.keys(z.fam).map(Number).filter(f => members[f] && members[f].length >= 2); }).catch(() => { $("#tZee").hidden = true; });
   $("#loading").remove();
   size(); buildGrid();
@@ -646,8 +666,25 @@ async function load() {
   wake();
 }
 
-$("#play").onclick = play;
-$("#year").addEventListener("input", e => { playing = false; $("#play").textContent = "Replay 1600 → 1810"; redraw(dayOfYear(+e.target.value + 1)); });
+let paused = false, resumeThreads = false, resumeZeeland = false;
+function setPaused(p) {
+  if (p === paused) return;
+  paused = p;
+  if (p) {
+    resumeThreads = playing; if (playing) play();
+    resumeZeeland = !!(window.zeelandPlaying && window.zeelandPlaying()); if (resumeZeeland) window.zeelandToggle();
+  } else {
+    if (resumeThreads) play();
+    if (resumeZeeland) window.zeelandToggle();
+    resumeThreads = resumeZeeland = false; wake();
+  }
+  document.querySelectorAll(".pauseAll").forEach(b => { b.textContent = p ? "Resume animations" : "Pause animations"; b.setAttribute("aria-pressed", p); });
+}
+document.querySelectorAll(".pauseAll").forEach(b => b.addEventListener("click", () => setPaused(!paused)));
+function unpauseQuietly() { if (!paused) return; paused = false; resumeThreads = resumeZeeland = false; document.querySelectorAll(".pauseAll").forEach(b => { b.textContent = "Pause animations"; b.setAttribute("aria-pressed", false); }); wake(); }
+window.unpauseQuietly = unpauseQuietly;
+$("#play").onclick = () => { unpauseQuietly(); playing = false; upTo = X1; play(); };
+$("#year").addEventListener("input", e => { playing = false; redraw(dayOfYear(+e.target.value + 1)); });
 toggle($("#tFN"), "fn"); toggle($("#tPN"), "pn");
 $("#tBolt").setAttribute("aria-pressed", ambientOn);
 $("#tBolt").onclick = () => { ambientOn = !ambientOn; $("#tBolt").setAttribute("aria-pressed", ambientOn); if (!ambientOn) strikes = strikes.filter(s => s.hover); wake(); };
@@ -673,7 +710,7 @@ const $ = s => document.querySelector(s);
 const fmt = n => n.toLocaleString("en-GB");
 const esc = t => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;");
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
-let D, M, places, W, H, dpr, ctx, upTo = 1811, playing = false, sparks = [], bursts = [], filterPlace = null, shown = 12;
+let playRun = 0, D, M, places, W, H, dpr, ctx, upTo = 1811, playing = false, sparks = [], bursts = [], filterPlace = null, shown = 12;
 const Y0 = 1575, Y1 = 1811;
 const yr = d => +d.slice(0, 4) + (+d.slice(5, 7) - 1) / 12;
 
@@ -785,13 +822,13 @@ function loop(now) {
 const wake = () => { if (!raf) raf = requestAnimationFrame(loop); };
 
 function play() {
-  if (playing) { playing = false; $("#z-play").textContent = "Replay 1575 → 1810"; return; }
-  playing = true; $("#z-play").textContent = "Pause";
+  if (playing) { playing = false; return; }
+  playing = true; const run = ++playRun;
   if (upTo >= Y1) upTo = Y0;
   let idx = M.findIndex(x => yr(x.d) >= upTo); if (idx < 0) idx = M.length;
   let last = performance.now(); const dur = 26000;
   const step = now => {
-    if (!playing) return;
+    if (!playing || run !== playRun) return;
     upTo = Math.min(Y1, upTo + (Y1 - Y0) * (now - last) / dur); last = now;
     while (idx < M.length && yr(M[idx].d) < upTo) {
       const x = M[idx++];
@@ -800,7 +837,7 @@ function play() {
     }
     $("#z-year").value = Math.min(1810, Math.floor(upTo));
     drawStrip();
-    if (upTo >= Y1) { playing = false; $("#z-play").textContent = "Replay 1575 → 1810"; }
+    if (upTo >= Y1) { playing = false; }
     else requestAnimationFrame(step);
   };
   requestAnimationFrame(step); wake();
@@ -861,8 +898,10 @@ async function load() {
   M = D.marriages; places = D.places;
   renderFunnel(); size(); drawStrip(); drawMap(performance.now()); renderCards();
 }
-$("#z-play").onclick = play;
-$("#z-year").addEventListener("input", e => { playing = false; $("#z-play").textContent = "Replay 1575 → 1810"; upTo = +e.target.value + 1; drawStrip(); drawMap(performance.now()); });
+$("#z-play").onclick = () => { if (window.unpauseQuietly) window.unpauseQuietly(); playing = false; upTo = Y1; play(); };
+window.zeelandPlaying = () => playing;
+window.zeelandToggle = play;
+$("#z-year").addEventListener("input", e => { playing = false; upTo = +e.target.value + 1; drawStrip(); drawMap(performance.now()); });
 $("#z-map").addEventListener("mousemove", ev => {
   const r = ev.target.getBoundingClientRect(), mx = ev.clientX - r.left, my = ev.clientY - r.top, k = nearestPlace(mx, my), tip = $("#z-tip");
   if (!k) { tip.hidden = true; ev.target.style.cursor = "crosshair"; return; }
