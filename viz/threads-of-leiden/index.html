@@ -37,7 +37,7 @@ h1 em { font-style: italic; color: var(--amber); text-shadow: 0 0 18px rgba(127,
 .counters { display: flex; flex-wrap: wrap; gap: 12px 30px; align-items: flex-end; }
 .counter .n { font: 300 clamp(24px, 3.3vw, 40px)/1 var(--display); font-variant-numeric: tabular-nums lining-nums; }
 .counter .l { font-size: 13px; color: var(--muted); margin-top: 4px; }
-.counter.year .n { color: var(--amber); text-shadow: 0 0 16px rgba(127,232,255,.45); }
+.counter.year .n { color: var(--sea); text-shadow: 0 0 16px rgba(85,242,200,.45); }
 .stage { position: relative; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: radial-gradient(70% 90% at 55% 50%, var(--glow) 0%, var(--night-2) 55%, var(--night) 100%); }
 .stage::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(85% 100% at 50% 50%, transparent 60%, rgba(2,10,31,.75) 100%); }
 .stage canvas { display: block; width: 100%; height: clamp(360px, 62vh, 680px); }
@@ -131,7 +131,7 @@ a.go:focus-visible, a.credit:focus-visible { outline: 2px solid var(--amber); ou
 .qr img { display: block; width: min(260px, 60vw); height: auto; margin: 0 auto; }
 .qr figcaption { color: #0b1020; font: 500 14px var(--ui); margin-top: 6px; }
 .credits-h { font: 300 clamp(22px, 3vw, 30px)/1.15 var(--display); margin: 8px 0 12px; }
-.credits { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 14px; }
+.credits { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 14px; }
 a.credit { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: rgba(4,22,61,.55); text-decoration: none; color: var(--ink); min-width: 0; transition: border-color .15s, transform .15s; }
 a.credit:hover { border-color: var(--amber); }
 @media (prefers-reduced-motion: no-preference) { a.credit:hover { transform: translateY(-2px); } }
@@ -158,9 +158,8 @@ a.credit .cu { color: var(--faint); font: 11px var(--mono); padding: 4px 12px 12
   <div class="counters" aria-live="polite">
     <div class="counter year"><div class="n" id="cYear">1600–1810</div><div class="l">years shown</div></div>
     <div class="counter"><div class="n" id="cBapt">–</div><div class="l">baptisms</div></div>
-    <div class="counter"><div class="n" id="cPairs">–</div><div class="l">sibling links</div></div>
-    <div class="counter"><div class="n" id="cFam">–</div><div class="l">families of two or more children</div></div>
     <div class="counter"><div class="n" id="cMar">–</div><div class="l">marriage records · <span id="cMarL">–</span> linked to baptisms</div></div>
+    <div class="counter"><div class="n" id="cFam">–</div><div class="l">families of two or more children</div></div>
   </div>
 
   <div>
@@ -183,10 +182,10 @@ a.credit .cu { color: var(--faint); font: 11px var(--mono); padding: 4px 12px 12
     <button id="tFN" aria-pressed="true">Family-name links</button>
     <button id="tPN" aria-pressed="true">Patronym-only links</button>
     <button id="tBolt" aria-pressed="true">Lightning</button>
-    <a id="tZee" class="btnlink" href="#zeeland">Trots op Zeeland →</a>
+    <a id="tZee" class="btnlink" href="#zeeland">Zeeuw van de Eeuw →</a>
   </div>
 
-  <p class="notes zlink" id="zNote" hidden>Trots op Zeeland: the lightning now only strikes the 100 families whose parents married with a bride or groom born in Zeeland.</p>
+  <p class="notes zlink" id="zNote" hidden>Zeeuw van de Eeuw: the lightning now only strikes the 100 families whose parents married with a bride or groom born in Zeeland.</p>
 
   <div class="legend">
     <span><i class="dot" style="background:var(--ink);box-shadow:0 0 6px var(--amber)"></i>baptism in a family</span>
@@ -221,7 +220,7 @@ a.credit .cu { color: var(--faint); font: 11px var(--mono); padding: 4px 12px 12
       </div>
       <div class="intro-go">
         <a class="go primary" href="#threads" data-view="threads">Threads of Leiden →</a>
-        <a class="go" href="#zeeland" data-view="zeeland">Trots op Zeeland →</a>
+        <a class="go" href="#zeeland" data-view="zeeland">Zeeuw van de Eeuw →</a>
       </div>
     </div>
     <figure class="qr">
@@ -232,6 +231,10 @@ a.credit .cu { color: var(--faint); font: 11px var(--mono); padding: 4px 12px 12
   <section>
     <h2 class="credits-h">Built on</h2>
     <div class="credits">
+        <a class="credit" href="https://github.com/CLARIAH/burgerLinker" target="_blank" rel="noopener">
+          <img src="credit-burgerlinker.jpg" alt="Screenshot of CLARIAH: burgerLinker" loading="lazy">
+          <span class="ct">CLARIAH</span><span class="cs">burgerLinker</span><span class="cu">github.com/CLARIAH/burgerLinker</span>
+        </a>
         <a class="credit" href="https://datasetregister.netwerkdigitaalerfgoed.nl/en/dataset?uri=https://www.openarchieven.nl/id/dataset_elo" target="_blank" rel="noopener">
           <img src="credit-elo.jpg" alt="Screenshot of Erfgoed Leiden en Omstreken: DTB dopen, trouwen en begraven" loading="lazy">
           <span class="ct">Erfgoed Leiden en Omstreken</span><span class="cs">DTB dopen, trouwen en begraven</span><span class="cu">datasetregister.netwerkdigitaalerfgoed.nl</span>
@@ -374,7 +377,7 @@ function counters(limit) {
     const upto = arr => { let n = 0; for (let k = 0; k < arr.length; k++) { const y = mcount.first + k; if (y < yy0) n += arr[k]; else if (y === yy0) n += arr[k] * Math.min(1, Math.max(0, frac)); } return Math.round(n); };
     $("#cMar").textContent = fmt(upto(mcount.all)); $("#cMarL").textContent = fmt(upto(mcount.linked));
   }
-  $("#cYear").textContent = `1600–${y}`; $("#cBapt").textContent = fmt(c.b); $("#cPairs").textContent = fmt(c.p); $("#cFam").textContent = fmt(c.f);
+  $("#cYear").textContent = `1600–${y}`; $("#cBapt").textContent = fmt(c.b); $("#cFam").textContent = fmt(c.f);
 }
 function drawLens() {
   lctx.clearRect(0, 0, W, H);
@@ -848,6 +851,16 @@ function showView(v) {
     wake();
   }
 }
+// scans open in one smaller window on top of the page; where pop-ups are blocked the link opens a new tab as usual
+document.addEventListener("click", e => {
+  const a = e.target.closest && e.target.closest("#scanStrip a, #zview .zscans a");
+  if (!a || e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+  const sw = window.screen.availWidth || 1280, sh = window.screen.availHeight || 900;
+  const w = Math.round(Math.min(1000, sw * .62)), h = Math.round(sh * .88);
+  const left = Math.round((window.screenX || 0) + ((window.outerWidth || sw) - w) / 2), top = Math.round((window.screenY || 0) + 30);
+  const win = window.open(a.href, "elo-scan", `popup=yes,width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=yes`);
+  if (win) { e.preventDefault(); try { win.focus(); } catch (_) {} }
+});
 document.querySelectorAll("[data-view]").forEach(a => a.addEventListener("click", e => { e.preventDefault(); const v = a.dataset.view; try { history.replaceState(null, "", "#" + v); } catch (_) {} showView(v); }));
 document.getElementById("tZee").addEventListener("click", e => { e.preventDefault(); try { history.replaceState(null, "", "#zeeland"); } catch (_) {} showView("zeeland"); });
 document.querySelector("#zview .zback").addEventListener("click", e => { e.preventDefault(); try { history.replaceState(null, "", "#threads"); } catch (_) {} showView("threads"); });
