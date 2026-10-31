@@ -147,6 +147,12 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--amber); min-width: 0; }
     <span><i class="dot" style="background:var(--faint)"></i>baptism without a linked sibling</span>
     <span><i class="thread" style="background:var(--amber)"></i>sibling link found on family name</span>
     <span><i class="thread" style="background:var(--teal)"></i>sibling link found on patronym only</span>
+    <span style="flex-basis:100%;height:0"></span>
+    <span>lightning and children by church of baptism:</span>
+    <span><i class="thread" style="background:#ffb020;box-shadow:0 0 6px #ffb020"></i>Nederduitse Gereformeerde Kerk</span>
+    <span><i class="thread" style="background:#ff3fa4;box-shadow:0 0 6px #ff3fa4"></i>Rooms-Katholieke Kerk</span>
+    <span><i class="thread" style="background:#8cff3f;box-shadow:0 0 6px #8cff3f"></i>Remonstrantse Broederschap</span>
+    <span><i class="thread" style="background:#ff5b45;box-shadow:0 0 6px #ff5b45"></i>other or unknown</span>
     <span><i class="dot" style="background:var(--rose);border-radius:1px;transform:rotate(45deg)"></i>marriage of the parents (in the family panel)</span>
   </div>
 
@@ -414,7 +420,17 @@ function genBolt(x0, x1, y1, seed) {
   channel(x0, 0, x1, y1, 0, 2.2, 1, .34);
   return lines.sort((a, b) => b.depth - a.depth);
 }
-function drawBolt(lines, leaderY, intensity) {
+const REL = [
+  { short: "Reformed", name: "Nederduitse Gereformeerde Kerk", rgb: [255, 176, 32] },
+  { short: "Catholic", name: "Rooms-Katholieke Kerk", rgb: [255, 63, 164] },
+  { short: "Remonstrant", name: "Remonstrantse Broederschap", rgb: [140, 255, 63] },
+  { short: "other or unknown", name: "other or unknown", rgb: [255, 91, 69] },
+];
+let relB = null;
+const relOf = i => relB ? relB[i] : 0;
+const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const tint = (c, k) => [0, 1, 2].map(j => Math.round(c[j] + (255 - c[j]) * k));
+function drawBolt(lines, leaderY, intensity, col = [127, 200, 255]) {
   if (intensity <= 0) return;
   for (const pass of [0, 1, 2]) {
     for (const L of lines) {
@@ -422,9 +438,9 @@ function drawBolt(lines, leaderY, intensity) {
       for (const [x, y] of L.pts) { if (y > leaderY) break; started ? path.lineTo(x, y) : path.moveTo(x, y); started = true; }
       if (!started) continue;
       const a = Math.min(1, L.alpha * intensity);
-      if (pass === 0) { hctx.shadowColor = "rgba(127,200,255,.9)"; hctx.shadowBlur = L.depth ? 6 : 22; hctx.lineWidth = L.width * 3.2; hctx.strokeStyle = `rgba(70,140,255,${.28 * a})`; }
-      else if (pass === 1) { hctx.shadowBlur = L.depth ? 2 : 8; hctx.lineWidth = L.width * 1.5; hctx.strokeStyle = `rgba(160,215,255,${.75 * a})`; }
-      else { hctx.shadowBlur = 0; hctx.lineWidth = Math.max(.5, L.width * .6); hctx.strokeStyle = `rgba(255,255,255,${a})`; }
+      if (pass === 0) { hctx.shadowColor = rgba(col, .95); hctx.shadowBlur = L.depth ? 8 : 24; hctx.lineWidth = L.width * 3.4; hctx.strokeStyle = rgba(col, .42 * a); }
+      else if (pass === 1) { hctx.shadowBlur = L.depth ? 3 : 10; hctx.lineWidth = L.width * 1.6; hctx.strokeStyle = rgba(col, .95 * a); }
+      else { hctx.shadowBlur = 0; hctx.lineWidth = Math.max(.5, L.width * .6); hctx.strokeStyle = rgba(tint(col, .65), a); }
       hctx.lineJoin = "miter"; hctx.stroke(path);
     }
   }
@@ -457,7 +473,16 @@ function familyPanel(s, ms, t, t0, fade) {
   hctx.font = "500 13px Archivo, sans-serif"; hctx.fillStyle = "#dff7ff";
   hctx.fillText(labels[s.f].replace(" & ", " × "), px + 14, py + 22, pw - 28);
   hctx.font = "11px 'IBM Plex Mono', monospace"; hctx.fillStyle = "rgba(170,220,245,.8)";
-  hctx.fillText(`${n} children · ${dateStr(day[ms[0]]).slice(0, 4)}–${dateStr(d1).slice(0, 4)}`, px + 14, py + 38);
+  const head = `${n} children · ${dateStr(day[ms[0]]).slice(0, 4)}–${dateStr(d1).slice(0, 4)}`;
+  hctx.fillText(head, px + 14, py + 38);
+  { const rc = [0, 0, 0, 0]; ms.forEach(j => rc[relOf(j)]++);
+    let tx = px + 14 + hctx.measureText(head).width;
+    hctx.font = "500 11px Archivo, sans-serif";
+    [0, 1, 2, 3].filter(k => rc[k]).forEach(k => {
+      const t = ` · ${REL[k].short} ${rc[k]}`; hctx.fillStyle = rgba(tint(REL[k].rgb, .15), 1);
+      if (tx + hctx.measureText(t).width < px + pw - 10) { hctx.fillText(t, tx, py + 38); tx += hctx.measureText(t).width; }
+    });
+    hctx.font = "11px 'IBM Plex Mono', monospace"; }
   if (zb) { hctx.fillStyle = "rgba(85,242,200,.95)"; hctx.fillText(zb, px + 14, py + (mar ? 72 : 56), pw - 28); }
   if (mar) {
     hctx.fillStyle = "rgba(255,170,200,.9)";
@@ -499,7 +524,8 @@ function familyPanel(s, ms, t, t0, fade) {
     if (hit < 0) return;
     const x = X(j), burst = hit < 300 ? 1 - hit / 300 : 0;
     hctx.shadowColor = "rgba(127,232,255,1)"; hctx.shadowBlur = 10 + burst * 10;
-    hctx.fillStyle = "#e9fbff"; hctx.beginPath(); hctx.arc(x, by, 3.2 + burst * 4, 0, 7); hctx.fill(); hctx.shadowBlur = 0;
+    const rc = REL[relOf(j)].rgb; hctx.shadowColor = rgba(rc, 1);
+    hctx.fillStyle = rgba(tint(rc, .25), 1); hctx.beginPath(); hctx.arc(x, by, 3.6 + burst * 4, 0, 7); hctx.fill(); hctx.shadowBlur = 0;
     if (x - lastLabel > 30) {
       hctx.font = "10px 'IBM Plex Mono', monospace"; hctx.fillStyle = "rgba(170,220,245,.75)"; hctx.textAlign = "center";
       hctx.fillText(dateStr(day[j]).slice(0, 4), x, by + 16); hctx.textAlign = "left"; lastLabel = x;
@@ -530,10 +556,11 @@ function drawStrike(s, now) {
     const bt = t - b.delay; if (bt < 0) continue;
     const it = boltIntensity(bt); if (it <= 0) continue;
     const y = yOf(yy[b.j]);
-    drawBolt(b.lines, bt < LEAD ? y * (bt / LEAD) : 1e9, it);
+    const bc = REL[relOf(b.j)].rgb;
+    drawBolt(b.lines, bt < LEAD ? y * (bt / LEAD) : 1e9, it, bc);
     if (bt >= LEAD) {
       const x = xOf(day[b.j]), a = Math.min(1, it) * .55, g = hctx.createRadialGradient(x, y, 0, x, y, 70);
-      g.addColorStop(0, `rgba(200,240,255,${a})`); g.addColorStop(1, "rgba(200,240,255,0)");
+      g.addColorStop(0, rgba(tint(bc, .5), a)); g.addColorStop(1, rgba(bc, 0));
       hctx.fillStyle = g; hctx.fillRect(x - 70, y - 70, 140, 140);
     }
   }
@@ -611,6 +638,7 @@ async function load() {
   pairsOfFam = new Array(labels.length);
   for (let q = 0; q < P; q++) { const f = fam[pa[q]]; (pairsOfFam[f] || (pairsOfFam[f] = [])).push(q); }
   fetch("marriages.json").then(r => r.json()).then(m => { marriages = m; }).catch(() => {});
+  fetch("religion.b64.txt").then(r => r.text()).then(t => { relB = new Uint8Array(b64(t)); }).catch(() => {});
   fetch("zeeland-lens.json").then(r => r.json()).then(z => { zee = z; zSet = new Set(z.b); zFams = Object.keys(z.fam).map(Number).filter(f => members[f] && members[f].length >= 2); }).catch(() => { $("#tZee").hidden = true; });
   $("#loading").remove();
   size(); buildGrid();

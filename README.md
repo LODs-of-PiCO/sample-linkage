@@ -121,9 +121,19 @@ python3 scripts/sibling_marriages.py work/sibling-marriages work/siblings-checke
 
 `work/sibling-marriages-links.csv` has every baptism–marriage link with both places; `work/sibling-marriages-groups.csv` says per sibling group whether its baptisms point to one marriage, several or none.
 
+## Religion
+
+`data/elo-religion.nt.gz` gives the denomination of each baptism (`picom:hasReligion` on the baptised child, IISG TaxonomyOfReligions); 94% of the baptisms have one. Siblings were usually baptised in the same church, so groups that mix denominations deserve a check:
+
+```bash
+python3 scripts/sibling_religion.py data/elo-religion.nt.gz work/siblings-checked-groups.csv work/siblings-religion.csv
+```
+
+909 of the 53,999 groups mix denominations: 1–2% of the groups with up to 9 baptisms, but 34% of those with 15 or more, which matches the groups joined through patronym-only links.
+
 ## Visualisations
 
-- [viz/threads-of-leiden/](viz/threads-of-leiden/): every baptism as a point and every sibling link as a thread, 1600–1810, with lightning on families, the parents' marriage and the birth places of bride and groom. "Trots op Zeeland" switches to the Zeeland view: brides and grooms born in Zeeland, on a map and as families.
+- [viz/threads-of-leiden/](viz/threads-of-leiden/): every baptism as a point and every sibling link as a thread, 1600–1810, with lightning on families coloured by church of baptism, the parents' marriage and the birth places of bride and groom. "Trots op Zeeland" switches to the Zeeland view: brides and grooms born in Zeeland, on a map and as families.
 - [viz/family-browser/](viz/family-browser/): a sample of sibling groups, each drawn as four networks (one per run), with pair-by-pair comparison.
 
 Both read their data files with `fetch`, so serve the folder instead of opening the file:
