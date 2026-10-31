@@ -107,6 +107,10 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--amber); min-width: 0; }
 #zview .card .other { color: var(--muted); font-size: 14px; }
 #zview .card canvas { display: block; width: 100%; height: 46px; margin-top: 10px; }
 #zview .card .kids { color: var(--muted); font-size: 13px; margin-top: 4px; overflow-wrap: anywhere; }
+#zview .zscans { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+#zview .zscans a { width: 34px; height: 34px; border: 1.5px solid currentColor; border-radius: 6px; background: rgba(2,10,31,.6); display: grid; place-items: center; transition: box-shadow .15s, background .15s; }
+#zview .zscans a:hover, #zview .zscans a:focus-visible { background: rgba(20,40,80,.95); box-shadow: 0 0 12px currentColor; outline: none; }
+#zview .zscans svg { width: 22px; height: 22px; display: block; }
 #zview .filterline { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; color: var(--muted); font-size: 14px; }
 #zview .notes { color: var(--faint); font-size: 13px; max-width: 82ch; margin: 0; }
 
@@ -136,6 +140,10 @@ a.credit .ct { font-weight: 600; font-size: 15px; padding: 10px 12px 0; }
 a.credit .cs { color: var(--muted); font-size: 14px; padding: 0 12px; }
 a.credit .cu { color: var(--faint); font: 11px var(--mono); padding: 4px 12px 12px; overflow-wrap: anywhere; }
 .toIntro { color: var(--amber); text-decoration: none; font-size: 14px; }
+.scan-strip { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.scan-strip a { position: absolute; width: 34px; height: 34px; border: 1.5px solid currentColor; border-radius: 6px; background: rgba(2,10,31,.9); pointer-events: auto; display: grid; place-items: center; transition: box-shadow .15s, background .15s; }
+.scan-strip a:hover, .scan-strip a:focus-visible { background: rgba(20,40,80,.95); box-shadow: 0 0 12px currentColor; outline: none; }
+.scan-strip svg { width: 22px; height: 22px; display: block; }
 </style>
 
 <div id="tview">
@@ -161,6 +169,7 @@ a.credit .cu { color: var(--faint); font: 11px var(--mono); padding: 4px 12px 12
       <canvas id="sky" role="img" aria-label="All baptisms in the Leiden region from 1600 to 1810 as points by date, with arcs between baptisms linked as siblings"></canvas>
       <canvas id="lens" aria-hidden="true"></canvas>
       <canvas id="hl" aria-hidden="true"></canvas>
+      <div class="scan-strip" id="scanStrip" style="opacity:0"></div>
       <div class="loading" id="loading">Loading 395,690 baptisms…</div>
       <div class="tip" id="tip" hidden></div>
     </div>
@@ -301,7 +310,7 @@ const fmt = n => n.toLocaleString("en-GB");
 const DAY0 = Date.UTC(1550, 0, 1);
 const dayOfYear = y => Math.round((Date.UTC(y, 0, 1) - DAY0) / 864e5);
 const X0 = dayOfYear(1600), X1 = dayOfYear(1811);
-let threadsPending = false, playRun = 0, mcount = null, marriages = null, zee = null, zLens = false, zSet = null, zFams = [], lctx, N, P, day, yy, fam, pa, pb, pm, labels, order, members, pairsOfFam;
+let scansB = null, threadsPending = false, playRun = 0, mcount = null, marriages = null, zee = null, zLens = false, zSet = null, zFams = [], lctx, N, P, day, yy, fam, pa, pb, pm, labels, order, members, pairsOfFam;
 let show = { fn: true, pn: true, single: true };
 let W, H, dpr, ctx, hctx, grid, upTo = X1, playing = false;
 const PAD_T = 90, PAD_B = 14, PAD_X = 10;
@@ -553,8 +562,8 @@ function familyPanel(s, ms, t, t0, fade) {
   const mar = marriages && marriages[s.f], off = mar ? ARC : 0;
   const n = ms.length, d0 = mar ? Math.min(mar[0], day[ms[0]]) : day[ms[0]], d1 = day[ms[n - 1]], span = Math.max(365, d1 - d0);
   const zb = false;
-  const BOX = mar ? 46 : 0;
-  const pw = Math.min(W - 24, Math.max(mar || zb ? 360 : 240, 46 * (n - 1) + 110)), ph = (mar ? 140 : 118) + (zb ? 16 : 0) + BOX;
+  const BOX = mar ? 46 : 0, STRIP = scansB ? 50 : 0;
+  const pw = Math.min(W - 24, Math.max(mar || zb ? 360 : 240, 46 * (n - 1) + 110)), ph = (mar ? 140 : 118) + (zb ? 16 : 0) + BOX + STRIP;
   const fx = ms.reduce((a, j) => a + xOf(day[j]), 0) / n, fy = yOf(yy[ms[0]]);
   const px = Math.max(12, Math.min(W - pw - 12, fx - pw / 2));
   const py = fy - ph - 18 > 6 ? fy - ph - 18 : Math.min(H - ph - 6, fy + 18);
@@ -583,7 +592,7 @@ function familyPanel(s, ms, t, t0, fade) {
     hctx.fillStyle = "rgba(255,170,200,.9)";
     hctx.fillText(`married ${dateStr(mar[0])}${mar[3] ? " · " + mar[3] : ""} · ${mar[1]} × ${mar[2]}`, px + 14, py + 56, pw - 28);
   }
-  const lx = px + 30, rx = px + pw - 30, by = py + ph - 26 - BOX;
+  const lx = px + 30, rx = px + pw - 30, by = py + ph - 26 - BOX - STRIP;
   const X = j => lx + (day[j] - d0) / span * (rx - lx);
   if (mar) {
     const mx = lx + (mar[0] - d0) / span * (rx - lx), x2 = X(ms[0]), hit = t - t0 + ARC;
@@ -627,22 +636,58 @@ function familyPanel(s, ms, t, t0, fade) {
     }
   });
   if (mar) {
-    const wx = px + 12, wy = by + 26, ww = pw - 24, wh = BOX - 10;
+    const wx = px + 12, wy = by + 26 + STRIP, ww = pw - 24, wh = BOX - 10;
     hctx.fillStyle = "rgba(10,30,70,.95)"; hctx.strokeStyle = "rgba(127,232,255,.35)"; hctx.lineWidth = 1;
     hctx.beginPath(); hctx.roundRect(wx, wy, ww, wh, 7); hctx.fill(); hctx.stroke();
     hctx.font = "500 15px Archivo, sans-serif"; hctx.fillStyle = "#ffffff"; hctx.textAlign = "center";
     hctx.fillText(`${mar[8] || "unknown"}, ${mar[7] || "unknown"}`, wx + ww / 2, wy + wh / 2 + 5, ww - 20);
     hctx.textAlign = "left";
   }
+  if (STRIP) placeScans(s, ms, mar, X, mar ? lx + (mar[0] - d0) / span * (rx - lx) : null, by, px, pw, appear);
   hctx.globalAlpha = 1;
 }
+const IIIF = id => `https://elo.memorix.io/resources/iiif/3/${id}`;
+function scanId(i) {
+  if (!scansB) return "";
+  const b = scansB.subarray(i * 16, i * 16 + 16);
+  if (!b.some(v => v)) return "";
+  const h = [...b].map(v => v.toString(16).padStart(2, "0")).join("");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+let stripKey = "";
+function placeScans(s, ms, mar, X, mx, by, px, pw, appear) {
+  const el = $("#scanStrip"), key = `${s.f}|${Math.round(px)}|${Math.round(by)}|${pw}`;
+  el.style.opacity = appear; el.dataset.f = s.f;
+  if (key === stripKey) return;
+  stripKey = key;
+  const items = ms.map(j => ({ x: X(j), id: scanId(j), title: `${dateStr(day[j])}: baptism`, rel: REL[relOf(j)].rgb }));
+  if (mar && mx !== null) items.unshift({ x: mx, id: mar[9] || "", title: `${dateStr(mar[0])}: marriage`, marriage: true });
+  const size = 34, y = by + 24;
+  // icons sit under their child; when they would overlap, spread them evenly and draw a leader line
+  const crowded = items.some((it, k) => k && it.x - items[k - 1].x < size + 4);
+  const left = px + 14, right = px + pw - 14 - size;
+  items.forEach((it, k) => { it.ix = crowded ? left + (items.length > 1 ? k * (right - left) / (items.length - 1) : (right - left) / 2) : it.x - size / 2; });
+  el.innerHTML = items.map(it => it.id
+    ? `<a href="${IIIF(it.id)}/full/max/0/default.jpg" target="_blank" rel="noopener" title="${it.title} · open the scan" aria-label="Open the scan of the ${it.title}" style="left:${it.ix}px;top:${y}px;color:${it.marriage ? "#ff8aa8" : rgba(tint(it.rel, .2), 1)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2.5h8.5L19 7v14.5H6z" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M14.5 2.5V7H19" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M8.5 10.5h8M8.5 13.5h8M8.5 16.5h5.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></a>`
+    : "").join("");
+  el.lead = crowded ? items.filter(it => it.id).map(it => [it.x, it.ix + size / 2]) : [];
+  el.leadY = [by, y];
+}
+function drawLeaders(alpha) {
+  const el = $("#scanStrip"); if (!el.lead || !el.lead.length || !+el.style.opacity) return;
+  hctx.globalAlpha = alpha * .5; hctx.strokeStyle = "rgba(170,220,245,.7)"; hctx.lineWidth = .8;
+  for (const [a, b] of el.lead) { hctx.beginPath(); hctx.moveTo(a, el.leadY[0] + 20); hctx.lineTo(b, el.leadY[1]); hctx.stroke(); }
+  hctx.globalAlpha = 1;
+}
+function hideScans() { const el = $("#scanStrip"); if (el.style.opacity !== "0") { el.style.opacity = 0; el.innerHTML = ""; stripKey = ""; el.lead = []; } }
 function drawStrike(s, now) {
   const ms = members[s.f].filter(j => day[j] < upTo);
   if (ms.length < 2) return true;
   const t = now - s.start, nb = ms.length - 1 + (marriages && marriages[s.f] ? 1 : 0);
   const t0 = REDUCED ? -1e9 : 2 * GAP + LEAD + FLASH + 120, built = t0 + nb * ARC;
   let fade = 1;
-  if (!s.hover) { const left = built + HOLD + FADE - t; if (left <= 0) return true; fade = Math.min(1, left / FADE); }
+  s.built = built;
+  if (!s.hover && !s.pinned) { const left = built + HOLD + FADE - t; if (left <= 0) return true; fade = Math.min(1, left / FADE); }
   if (!s.bolts) {
     const hits = [...new Set([ms[0], ms[Math.floor((ms.length - 1) / 2)], ms[ms.length - 1]])];
     s.bolts = hits.map((j, k) => { const x = xOf(day[j]), y = yOf(yy[j]); return { j, delay: k * GAP, lines: genBolt(x + (rng(s.f * 3 + k)() * 160), x, y, s.f * 101 + k) }; });
@@ -681,6 +726,7 @@ function frame(now) {
     nextAmbient = now + 1400 + Math.random() * 2200;
   }
   strikes = strikes.filter(s => !drawStrike(s, now));
+  if (strikes.length) drawLeaders(1); else hideScans();
   if (hoverSingle >= 0) flash(hoverSingle, 3.5, 1);
   if (strikes.length || hoverSingle >= 0 || ambientOn) raf = requestAnimationFrame(frame);
 }
@@ -737,6 +783,7 @@ async function load() {
   fetch("marriage-counts.json").then(r => r.json()).then(m => { mcount = m; counters(upTo); }).catch(() => {});
   fetch("religion.b64.txt").then(r => r.text()).then(t => {
     relB = new Uint8Array(b64(t));
+    fetch("scans.b64.txt").then(r => r.text()).then(t => { scansB = new Uint8Array(b64(t)); }).catch(() => {});
     const c = [0, 0, 0, 0]; for (const v of relB) c[v]++;
     const names = ["Nederduitse Gereformeerde Kerk", "Rooms-Katholieke Kerk", "Remonstrantse Broederschap", "other or unknown"];
     $("#relLegend").innerHTML = `<div class="t">Lightning: church of baptism</div>` + names.map((n, k) => {
@@ -775,7 +822,13 @@ toggle($("#tFN"), "fn"); toggle($("#tPN"), "pn");
 $("#tBolt").setAttribute("aria-pressed", ambientOn);
 $("#tBolt").onclick = () => { ambientOn = !ambientOn; $("#tBolt").setAttribute("aria-pressed", ambientOn); if (!ambientOn) strikes = strikes.filter(s => s.hover); wake(); };
 $("#hl").addEventListener("mousemove", ev => { if (!grid) return; const r = ev.target.getBoundingClientRect(); const mx = ev.clientX - r.left, my = ev.clientY - r.top; highlight(nearest(mx, my), mx, my); });
-$("#hl").addEventListener("mouseleave", () => highlight(-1));
+$("#hl").addEventListener("mouseleave", e => { if (e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest("#scanStrip")) return; highlight(-1); });
+$("#scanStrip").addEventListener("mouseenter", () => { const f = +$("#scanStrip").dataset.f; strikes.forEach(s => { if (s.f === f) s.pinned = true; }); });
+$("#scanStrip").addEventListener("mouseleave", e => {
+  const f = +$("#scanStrip").dataset.f, now = performance.now();
+  strikes.forEach(s => { if (s.f === f && s.pinned) { s.pinned = false; if (!s.hover) s.start = Math.min(s.start, now - (s.built || 0) - HOLD + 400); } });
+  if (!(e.relatedTarget && e.relatedTarget.id === "hl")) highlight(-1);
+});
 let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if (!labels) return; size(); buildGrid(); redraw(upTo); }, 200); });
 load().catch(() => { $("#loading").textContent = "The data did not load. Reload the page to try again."; });
 
@@ -957,6 +1010,7 @@ function renderFunnel() {
   $("#z-funnel").innerHTML = steps.map(([n, l, hi]) => `<div class="step${hi ? " hi" : ""}"><div class="n">${fmt(n)}</div><div class="l">${l}</div></div>`).join("");
 }
 
+const zScan = (id, title, col, rec) => id ? `<a href="https://elo.memorix.io/resources/iiif/3/${id}/full/max/0/default.jpg" target="_blank" rel="noopener" title="${title} · open the scan" aria-label="Open the scan of the ${title}" style="color:${col}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2.5h8.5L19 7v14.5H6z" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M14.5 2.5V7H19" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M8.5 10.5h8M8.5 13.5h8M8.5 16.5h5.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></a>` : "";
 function kidLine(cv, x) {
   const r = cv.getBoundingClientRect(), w = r.width, h = r.height, c = cv.getContext("2d");
   cv.width = w * dpr; cv.height = h * dpr; c.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -983,7 +1037,7 @@ function renderCards() {
     const zLine = x.z.map(q => `<b>${esc(q[0])}</b> <span class="from">born in ${esc(places[q[2]] ? places[q[2]][3] : q[2])}</span>`).join(" × ");
     const partner = both ? "" : `<div class="other">married ${esc(z[3] || "unknown")}${z[4] ? ", born in " + esc(z[4]) : ""}</div>`;
     const kids = x.k.map(k => `${esc(k[1])} (${k[0].slice(0, 4)})`).join(", ");
-    return `<article class="card"><div class="date">married ${x.d}</div><div class="who">${zLine}</div>${partner}<canvas data-i="${i}" role="img" aria-label="Marriage and ${x.k.length} children on a timeline"></canvas><div class="kids">${x.k.length} ${x.k.length === 1 ? "child" : "children"}: ${kids}</div></article>`;
+    return `<article class="card"><div class="date">married ${x.d}</div><div class="who">${zLine}</div>${partner}<canvas data-i="${i}" role="img" aria-label="Marriage and ${x.k.length} children on a timeline"></canvas><div class="zscans">${zScan(x.s, `${x.d}: marriage`, "#ff8aa8", x.id)}${x.k.map(k => zScan(k[3], `${k[0]}: baptism of ${esc(k[1])}`, "#7fe8ff", k[4])).join("")}</div><div class="kids">${x.k.length} ${x.k.length === 1 ? "child" : "children"}: ${kids}</div></article>`;
   }).join("");
   document.querySelectorAll("#z-cards canvas").forEach(cv => kidLine(cv, part[+cv.dataset.i]));
   $("#z-more").hidden = list.length <= shown;
