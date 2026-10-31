@@ -133,7 +133,7 @@ python3 scripts/sibling_religion.py data/elo-religion.nt.gz work/siblings-checke
 
 ## Visualisations
 
-- [viz/threads-of-leiden/](viz/threads-of-leiden/): every baptism as a point and every sibling link as a thread, 1600–1810, with lightning on families coloured by church of baptism, the parents' marriage and the birth places of bride and groom. "Trots op Zeeland" switches to the Zeeland view: brides and grooms born in Zeeland, on a map and as families.
+- [viz/threads-of-leiden/](viz/threads-of-leiden/): opens on an intro (QR code, key numbers, credits); then every baptism as a point and every sibling link as a thread, 1600–1810, with lightning on families coloured by church of baptism, the parents' marriage and the birth places of bride and groom. "Trots op Zeeland" switches to the Zeeland view: brides and grooms born in Zeeland, on a map and as families.
 - [viz/family-browser/](viz/family-browser/): a sample of sibling groups, each drawn as four networks (one per run), with pair-by-pair comparison.
 
 Both read their data files with `fetch`, so serve the folder instead of opening the file:

@@ -109,12 +109,40 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--amber); min-width: 0; }
 #zview .card .kids { color: var(--muted); font-size: 13px; margin-top: 4px; overflow-wrap: anywhere; }
 #zview .filterline { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; color: var(--muted); font-size: 14px; }
 #zview .notes { color: var(--faint); font-size: 13px; max-width: 82ch; margin: 0; }
+
+#iview h1 { font-size: clamp(32px, 5.4vw, 60px); max-width: 16ch; }
+#iview h1 em { font-style: italic; color: var(--amber); text-shadow: 0 0 18px rgba(127,232,255,.55); }
+.intro-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 28px; align-items: center; }
+@media (max-width: 760px) { .intro-grid { grid-template-columns: minmax(0, 1fr); } }
+.intro-stats { display: flex; flex-wrap: wrap; gap: 14px 30px; margin: 22px 0 0; }
+.intro-stats div { display: flex; flex-direction: column; }
+.intro-stats b { font: 300 clamp(26px, 3.4vw, 38px)/1 var(--display); font-variant-numeric: tabular-nums lining-nums; }
+.intro-stats span { color: var(--muted); font-size: 13px; margin-top: 4px; }
+.intro-go { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
+a.go { font: 500 16px var(--ui); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 10px 20px; text-decoration: none; }
+a.go:hover { border-color: var(--muted); }
+a.go.primary { background: var(--amber); border-color: var(--amber); color: var(--night); }
+a.go:focus-visible, a.credit:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+.qr { margin: 0; background: #fff; border-radius: 14px; padding: 14px 14px 10px; text-align: center; box-shadow: 0 0 40px rgba(127,232,255,.25); }
+.qr img { display: block; width: min(260px, 60vw); height: auto; margin: 0 auto; }
+.qr figcaption { color: #0b1020; font: 500 14px var(--ui); margin-top: 6px; }
+.credits-h { font: 300 clamp(22px, 3vw, 30px)/1.15 var(--display); margin: 8px 0 12px; }
+.credits { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 14px; }
+a.credit { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: rgba(4,22,61,.55); text-decoration: none; color: var(--ink); min-width: 0; transition: border-color .15s, transform .15s; }
+a.credit:hover { border-color: var(--amber); }
+@media (prefers-reduced-motion: no-preference) { a.credit:hover { transform: translateY(-2px); } }
+a.credit img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; object-position: top; border-bottom: 1px solid var(--line); filter: saturate(.85); }
+a.credit .ct { font-weight: 600; font-size: 15px; padding: 10px 12px 0; }
+a.credit .cs { color: var(--muted); font-size: 14px; padding: 0 12px; }
+a.credit .cu { color: var(--faint); font: 11px var(--mono); padding: 4px 12px 12px; overflow-wrap: anywhere; }
+.toIntro { color: var(--amber); text-decoration: none; font-size: 14px; }
 </style>
 
 <div id="tview">
 <div class="wrap">
   <header>
     <img class="brand" src="lods-of-pico-animated.svg" alt="LODs of PiCo">
+    <p style="margin:0 0 14px"><a href="#intro" class="toIntro" data-view="intro">← Intro</a></p>
     <p class="eyebrow">Leiden and surroundings · church baptisms 1600–1810</p>
     <h1>Every point is a baptism. Every <em>thread</em> joins two siblings.</h1>
   </header>
@@ -166,6 +194,63 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--amber); min-width: 0; }
 </div>
 
 </div>
+<section id="iview" hidden>
+<div class="wrap">
+  <header>
+    <img class="brand" src="lods-of-pico-animated.svg" alt="LODs of PiCo">
+    <p class="eyebrow">LODs of PiCo · Leiden and surroundings 1575–1810</p>
+    <h1>Two centuries of <em>families</em>, linked from the registers</h1>
+  </header>
+  <div class="intro-grid">
+    <div class="intro-text">
+      <p class="lede" style="margin:0">Every child baptised in the Leiden region between 1600 and 1810, linked into families by matching the names of the parents, and joined to the marriages of those parents. Explore the families as a sky full of threads, or follow the brides and grooms who came from Zeeland.</p>
+      <div class="intro-stats">
+        <div><b>395,690</b><span>baptisms</span></div>
+        <div><b>454,394</b><span>sibling links</span></div>
+        <div><b>174,588</b><span>marriage records</span></div>
+        <div><b>52,456</b><span>marriages linked to children</span></div>
+      </div>
+      <div class="intro-go">
+        <a class="go primary" href="#threads" data-view="threads">Threads of Leiden →</a>
+        <a class="go" href="#zeeland" data-view="zeeland">Trots op Zeeland →</a>
+      </div>
+    </div>
+    <figure class="qr">
+      <img src="qr-code.png" alt="QR code linking to edu.nl/bb734">
+      <figcaption>Scan to explore on your phone</figcaption>
+    </figure>
+  </div>
+  <section>
+    <h2 class="credits-h">Built on</h2>
+    <div class="credits">
+        <a class="credit" href="https://datasetregister.netwerkdigitaalerfgoed.nl/en/dataset?uri=https://www.openarchieven.nl/id/dataset_elo" target="_blank" rel="noopener">
+          <img src="credit-elo.jpg" alt="Screenshot of Erfgoed Leiden en Omstreken: DTB dopen, trouwen en begraven" loading="lazy">
+          <span class="ct">Erfgoed Leiden en Omstreken</span><span class="cs">DTB dopen, trouwen en begraven</span><span class="cu">datasetregister.netwerkdigitaalerfgoed.nl</span>
+        </a>
+        <a class="credit" href="https://datasetregister.netwerkdigitaalerfgoed.nl/en/dataset?uri=https://linkeddata.cultureelerfgoed.nl/rce/dutch-given-names" target="_blank" rel="noopener">
+          <img src="credit-bloothooft.jpg" alt="Screenshot of Gerrit Bloothooft: Dutch Given Names" loading="lazy">
+          <span class="ct">Gerrit Bloothooft</span><span class="cs">Dutch Given Names</span><span class="cu">datasetregister.netwerkdigitaalerfgoed.nl</span>
+        </a>
+        <a class="credit" href="https://iisg.amsterdam/resource/TaxonomyOfReligions/" target="_blank" rel="noopener">
+          <img src="credit-religions.jpg" alt="Screenshot of IISG: Religietaxonomie" loading="lazy">
+          <span class="ct">IISG</span><span class="cs">Religietaxonomie</span><span class="cu">iisg.amsterdam/resource/TaxonomyOfReligions</span>
+        </a>
+        <a class="credit" href="https://datasetregister.netwerkdigitaalerfgoed.nl/en/dataset?uri=https://druid.datalegend.net/IISG/List-of-Toponyms" target="_blank" rel="noopener">
+          <img src="credit-toponyms.jpg" alt="Screenshot of IISG: Toponiemenlijst" loading="lazy">
+          <span class="ct">IISG</span><span class="cs">Toponiemenlijst</span><span class="cu">datasetregister.netwerkdigitaalerfgoed.nl</span>
+        </a>
+        <a class="credit" href="https://personsincontext.org/model/" target="_blank" rel="noopener">
+          <img src="credit-pico.jpg" alt="Screenshot of Persons in Context: PiCo model" loading="lazy">
+          <span class="ct">Persons in Context</span><span class="cs">PiCo model</span><span class="cu">personsincontext.org/model</span>
+        </a>
+        <a class="credit" href="https://terms.personsincontext.org/" target="_blank" rel="noopener">
+          <img src="credit-thesaurus.jpg" alt="Screenshot of Persons in Context: Thesaurus Historische Personen" loading="lazy">
+          <span class="ct">Persons in Context</span><span class="cs">Thesaurus Historische Personen</span><span class="cu">terms.personsincontext.org</span>
+        </a>
+    </div>
+  </section>
+</div>
+</section>
 <section id="zview" hidden>
 <div class="wrap">
   <header>
@@ -216,7 +301,7 @@ const fmt = n => n.toLocaleString("en-GB");
 const DAY0 = Date.UTC(1550, 0, 1);
 const dayOfYear = y => Math.round((Date.UTC(y, 0, 1) - DAY0) / 864e5);
 const X0 = dayOfYear(1600), X1 = dayOfYear(1811);
-let playRun = 0, mcount = null, marriages = null, zee = null, zLens = false, zSet = null, zFams = [], lctx, N, P, day, yy, fam, pa, pb, pm, labels, order, members, pairsOfFam;
+let threadsPending = false, playRun = 0, mcount = null, marriages = null, zee = null, zLens = false, zSet = null, zFams = [], lctx, N, P, day, yy, fam, pa, pb, pm, labels, order, members, pairsOfFam;
 let show = { fn: true, pn: true, single: true };
 let W, H, dpr, ctx, hctx, grid, upTo = X1, playing = false;
 const PAD_T = 90, PAD_B = 14, PAD_X = 10;
@@ -661,6 +746,7 @@ async function load() {
   }).catch(() => { $("#relLegend").remove(); });
   fetch("zeeland-lens.json").then(r => r.json()).then(z => { zee = z; zSet = new Set(z.b); zFams = Object.keys(z.fam).map(Number).filter(f => members[f] && members[f].length >= 2); }).catch(() => { $("#tZee").hidden = true; });
   $("#loading").remove();
+  if (document.getElementById("tview").hidden) { threadsPending = true; return; }
   size(); buildGrid();
   if (REDUCED) redraw(X1); else play();
   wake();
@@ -694,12 +780,22 @@ let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() 
 load().catch(() => { $("#loading").textContent = "The data did not load. Reload the page to try again."; });
 
 function showView(v) {
-  const z = v === "zeeland";
-  document.getElementById("tview").hidden = z; document.getElementById("zview").hidden = !z;
+  const views = { intro: "iview", threads: "tview", zeeland: "zview" };
+  if (!views[v]) v = "intro";
+  for (const [k, id] of Object.entries(views)) document.getElementById(id).hidden = k !== v;
   window.scrollTo(0, 0);
-  const logo = document.querySelector((z ? "#zview" : "#tview") + " .brand"); if (logo) logo.src = "lods-of-pico-animated.svg?r=" + Date.now();
-  if (z) window.zeelandShow(); else { if (labels) { size(); buildGrid(); redraw(upTo); } wake(); }
+  const logo = document.querySelector("#" + views[v] + " .brand"); if (logo) logo.src = "lods-of-pico-animated.svg?r=" + Date.now();
+  if (v === "zeeland") window.zeelandShow();
+  else if (v === "threads") {
+    if (labels) {
+      size(); buildGrid();
+      if (threadsPending) { threadsPending = false; if (REDUCED) redraw(X1); else { upTo = X1; playing = false; play(); } }
+      else redraw(upTo);
+    }
+    wake();
+  }
 }
+document.querySelectorAll("[data-view]").forEach(a => a.addEventListener("click", e => { e.preventDefault(); const v = a.dataset.view; try { history.replaceState(null, "", "#" + v); } catch (_) {} showView(v); }));
 document.getElementById("tZee").addEventListener("click", e => { e.preventDefault(); try { history.replaceState(null, "", "#zeeland"); } catch (_) {} showView("zeeland"); });
 document.querySelector("#zview .zback").addEventListener("click", e => { e.preventDefault(); try { history.replaceState(null, "", "#threads"); } catch (_) {} showView("threads"); });
 </script>
@@ -921,5 +1017,5 @@ window.zeelandShow = () => {
 };
 
 })();
-if (location.hash === "#zeeland") showView("zeeland");
+showView(location.hash === "#zeeland" ? "zeeland" : location.hash === "#threads" ? "threads" : "intro");
 </script>
